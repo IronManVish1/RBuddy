@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummy Score Keeper - V10 Home Nav Fix</title>
+    <title>Rummy Score Keeper - V10.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -85,6 +85,8 @@
         .saved-game-item { transition: background-color 0.3s, border-color 0.3s; }
         body.light-theme .saved-game-item { border-left: 4px solid var(--btn-primary-bg-light); background-color: #fafafa; }
         body.dark-theme .saved-game-item { border-left: 4px solid var(--btn-primary-bg-dark); background-color: #2d3748; }
+        body.light-theme .saved-game-item.completed-game { border-left-color: #d32f2f; background-color: #ffebee; }
+        body.dark-theme .saved-game-item.completed-game { border-left-color: #e53e3e; background-color: #3c1d1d; }
         body.light-theme .saved-game-item p { color: var(--text-secondary-light); } 
         body.dark-theme .saved-game-item p { color: var(--text-secondary-dark); }
         body.light-theme .saved-game-item .game-name-link { color: var(--link-light); font-weight: 500; }
@@ -162,7 +164,6 @@
             <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
                 <div class="flex items-center gap-2">
                     <h2 id="currentGameNameDisplay" class="text-xl md:text-2xl font-semibold">Scoreboard</h2>
-                    <button id="suggestNameButton" class="btn btn-secondary btn-sm">Suggest Fun Name ✨</button>
                     <div id="nameSuggestionLoader" class="loader hidden"></div>
                 </div>
                 <p class="text-md md:text-lg">Round: <span id="currentRoundDisplay" class="font-bold">0</span></p>
@@ -200,9 +201,9 @@
         let appTitle, setupSection, gameSection, playerNameInput, addPlayerButton, knownPlayersList, playerSetupList,
             gameTargetScoreInput, openDropScoreInput, middleDropScoreInput, fullCountScoreInput,
             startNewGameButton, savedGamesContainer, themeToggleButton, currentGameNameDisplay,
-            suggestNameButton, nameSuggestionLoader, currentRoundDisplay, gameTargetScoreDisplay,
+            /*suggestNameButton,*/ nameSuggestionLoader, currentRoundDisplay, gameTargetScoreDisplay, // suggestNameButton removed
             gameOpenDropDisplay, gameMiddleDropDisplay, gameFullCountDisplay, roundScoresTableContainer,
-            enterScoresButton, editLastRoundButton, /* homeButton removed */ gameStatusMessage, autoSaveNotification,
+            enterScoresButton, editLastRoundButton, gameStatusMessage, autoSaveNotification,
             scoreModal, scoreModalTitle, modalRoundNumber, modalScoreInputs, submitScoresButton, cancelScoreEntryButton;
 
         // Game State & Local Storage Keys
@@ -210,9 +211,9 @@
         let currentGame = null; 
         let isEditingLastRoundGlobal = false; 
         
-        const LS_KNOWN_PLAYERS = 'rummyScorer_knownPlayers_v10';
-        const LS_SAVED_GAMES_LIST = 'rummyScorer_savedGamesList_v10';
-        const LS_THEME = 'rummyScorer_theme_v10';
+        const LS_KNOWN_PLAYERS = 'rummyScorer_knownPlayers_v10_2'; // Version bump for safety
+        const LS_SAVED_GAMES_LIST = 'rummyScorer_savedGamesList_v10_2';
+        const LS_THEME = 'rummyScorer_theme_v10_2';
 
         // Theme SVGs
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-6.364-.386l1.591-1.591M3 12h2.25m.386-6.364l1.591 1.591M12 12a2.25 2.25 0 00-2.25 2.25c0 1.242.938 2.25 2.1 2.25s2.1-.938 2.1-2.25A2.25 2.25 0 0012 12z" /></svg>`;
@@ -299,13 +300,14 @@
             savedGames.sort((a,b) => new Date(b.lastSavedTimestamp) - new Date(a.lastSavedTimestamp));
             savedGames.forEach(game => {
                 const div = document.createElement('div');
-                div.className = 'saved-game-item p-4 rounded-lg shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3';
+                div.className = `saved-game-item p-4 rounded-lg shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 ${game.isComplete ? 'completed-game' : ''}`;
                 const playerNames = game.players.map(p => p.name).slice(0,3).join(', ') + (game.players.length > 3 ? '...' : '');
+                let gameStatusInfo = game.isComplete ? ' (Complete)' : '';
                 div.innerHTML = `
-                    <div class="flex-grow"><p class="font-semibold game-name-link">${game.name || `Game from ${getFormattedEstDateTime(new Date(game.lastSavedTimestamp))}`}</p><p class="text-xs">Players: ${playerNames}</p><p class="text-xs">Round: ${game.currentRound}, Target: ${game.gameTargetScore}</p><p class="text-xs text-muted">Last Saved: ${getFormattedEstDateTime(new Date(game.lastSavedTimestamp))}</p></div>
+                    <div class="flex-grow"><p class="font-semibold game-name-link">${game.name || `Game from ${getFormattedEstDateTime(new Date(game.lastSavedTimestamp))}`}${gameStatusInfo}</p><p class="text-xs">Players: ${playerNames}</p><p class="text-xs">Round: ${game.currentRound}, Target: ${game.gameTargetScore}</p><p class="text-xs text-muted">Last Saved: ${getFormattedEstDateTime(new Date(game.lastSavedTimestamp))}</p></div>
                     <div class="flex gap-2 mt-2 sm:mt-0 self-end sm:self-center flex-shrink-0">
                         <button class="btn btn-text-blue text-xs py-1 px-2 edit-name-btn" data-game-id="${game.id}">Edit Name</button>
-                        <button class="btn btn-text-green text-xs py-1 px-2 load-game-btn" data-game-id="${game.id}">Load</button>
+                        <button class="btn btn-text-green text-xs py-1 px-2 load-game-btn" data-game-id="${game.id}">${game.isComplete ? 'View' : 'Continue'}</button>
                         <button class="btn btn-text-danger text-xs py-1 px-2 delete-game-btn" data-game-id="${game.id}">Delete</button>
                     </div>`;
                 div.querySelector('.load-game-btn').addEventListener('click', () => handleLoadGame(game.id));
@@ -339,13 +341,47 @@
             } else if (newName !== null) { alert("Game name cannot be empty.");}
         }
         
+        async function fetchAndSetInitialGameName(game) {
+            nameSuggestionLoader.classList.remove('hidden');
+            const playerNames = game.players.map(p => p.name).join(', ');
+            const currentDate = getFormattedEstDateTime();
+            const prompt = `Suggest a fun, short, and thematic Rummy game name for a game between ${playerNames}, being played on ${currentDate}. Keep the name under 5 words. Only provide the name, nothing else.`;
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        let suggestedName = result.candidates[0].content.parts[0].text.trim().replace(/^["*]+|["*]+$/g, '');
+                        if (suggestedName) game.name = suggestedName;
+                    }
+                } else { console.error("Gemini API Error for name suggestion:", await response.text()); }
+            } catch (error) { console.error("Fetch error for name suggestion:", error);
+            } finally {
+                nameSuggestionLoader.classList.add('hidden');
+                currentGameNameDisplay.textContent = game.name; // Update display with whatever name it has
+                autoSaveGameProgress(); // Save the game (with new or placeholder name)
+            }
+        }
+
+
         function handleStartNewGame() {
             if (playersForNewGameSetup.length < 2) { alert('Select at least 2 players to start the game.'); return; }
             currentGame = {
-                id: null, name: `New Game - ${getFormattedEstDateTime()}`,
+                id: null, name: `New Game - ${getFormattedEstDateTime()}`, // Placeholder name
                 players: JSON.parse(JSON.stringify(playersForNewGameSetup)).map((p, index) => ({
                     ...p, id: String(p.id).replace(/\./g, '_'), 
-                    scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: index === 0 
+                    scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: index === 0, isComplete: false
                 })),
                 currentRound: 0,
                 gameTargetScore: parseInt(gameTargetScoreInput.value) || 201,
@@ -354,10 +390,12 @@
                 fullCountScore: parseInt(fullCountScoreInput.value) || 80,
                 lastSavedTimestamp: new Date().toISOString(),
                 initialPlayerOrder: playersForNewGameSetup.map(p => String(p.id).replace(/\./g, '_')),
-                roundDealerHistory: [] 
+                roundDealerHistory: [],
+                isComplete: false 
             };
             playersForNewGameSetup = []; renderNewGameSetupPlayersList();
             transitionToGameView();
+            fetchAndSetInitialGameName(currentGame); // Fetch name after transitioning
         }
 
         function handleLoadGame(gameId) {
@@ -375,7 +413,6 @@
                 });
                 if (!currentGame.initialPlayerOrder) currentGame.initialPlayerOrder = currentGame.players.map(p => p.id);
                 else currentGame.initialPlayerOrder = currentGame.initialPlayerOrder.map(id => String(id).replace(/\./g, '_')); 
-
                 if (!currentGame.roundDealerHistory) currentGame.roundDealerHistory = [];
                 
                 const currentDealerPlayer = currentGame.players.find(p => p.isDealer);
@@ -486,7 +523,15 @@
                         }
                     }
                     if (player.canReEnterCurrentRound) {
-                        statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
+                         const activePlayersCount = currentGame.players.filter(p => !p.eliminated || p.id === player.id).length;
+                        if (currentGame.players.length > 2 && activePlayersCount >=1 ) { // Allow re-entry if it means at least 1 active player remains (the re-entering one)
+                            statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
+                        } else if (currentGame.players.length === 2 && activePlayersCount >=1) { // For 2 player game, allow re-entry if other is active
+                             const otherPlayer = currentGame.players.find(p => p.id !== player.id);
+                             if(otherPlayer && !otherPlayer.eliminated) {
+                                statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
+                             }
+                        }
                     }
                 }
                 tableHTML += `<td class="px-4 py-3 text-sm font-semibold">${statusText}</td>`;
@@ -499,14 +544,22 @@
         
         function handleReEnterGame(playerId) {
             if (!currentGame) return;
-            const player = currentGame.players.find(p => String(p.id) === String(playerId));
-            if (player && player.eliminated && player.canReEnterCurrentRound) {
-                const highestScoreAmongAll = Math.max(0, ...currentGame.players.map(p => p.totalScore)); 
-                player.totalScore = highestScoreAmongAll + 1;
-                player.eliminated = false;
-                player.canReEnterCurrentRound = false; 
-                renderRoundScoresTable(); autoSaveGameProgress();
-                alert(`${player.name} re-entered at ${player.totalScore}.`);
+            const playerToReEnter = currentGame.players.find(p => String(p.id) === String(playerId));
+            if (playerToReEnter && playerToReEnter.eliminated && playerToReEnter.canReEnterCurrentRound) {
+                const otherPlayers = currentGame.players.filter(p => p.id !== playerId);
+                let highestScoreOfOthers = 0;
+                if (otherPlayers.length > 0) {
+                     highestScoreOfOthers = Math.max(0, ...otherPlayers.map(p => p.totalScore));
+                }
+                
+                playerToReEnter.totalScore = highestScoreOfOthers + 1;
+                playerToReEnter.eliminated = false;
+                playerToReEnter.canReEnterCurrentRound = false; 
+                
+                gameStatusMessage.textContent = ''; // Clear any winner message
+                renderRoundScoresTable(); 
+                autoSaveGameProgress();
+                alert(`${playerToReEnter.name} re-entered at ${playerToReEnter.totalScore}.`);
             }
         }
 
@@ -665,20 +718,31 @@
             if (!currentGame) return;
             const activePlayers = currentGame.players.filter(p => !p.eliminated);
             let gameHasEnded = false;
+            currentGame.isComplete = false; // Default to not complete
+
             if (currentGame.players.length > 0 && activePlayers.length === 0) {
                 gameStatusMessage.textContent = "All players eliminated! Game Over."; gameHasEnded = true;
+                currentGame.isComplete = true;
             } else if (currentGame.players.length >= 2 && activePlayers.length === 1 && currentGame.currentRound > 0) { 
                 gameStatusMessage.textContent = `${activePlayers[0].name} is the winner!`; gameHasEnded = true;
+                currentGame.isComplete = true;
             }
+            
             enterScoresButton.disabled = gameHasEnded || !isGameEffectivelyActive();
             editLastRoundButton.disabled = gameHasEnded || currentGame.currentRound === 0;
-            if (gameHasEnded) autoSaveGameProgress(); 
-            else if (!gameHasEnded && gameStatusMessage.textContent === '') { 
-                 const canAnyReEnter = currentGame.players.some(p => p.canReEnterCurrentRound);
-                 if (!canAnyReEnter) gameStatusMessage.textContent = '';
-                 else if (gameStatusMessage.textContent !== 'Some players are eligible for re-entry.') { 
+
+            if (gameHasEnded) {
+                 autoSaveGameProgress(); 
+            } else {
+                const canAnyReEnter = currentGame.players.some(p => p.eliminated && p.canReEnterCurrentRound);
+                if (canAnyReEnter) {
                     gameStatusMessage.textContent = 'Some players are eligible for re-entry.';
-                 }
+                } else if (gameStatusMessage.textContent === 'Some players are eligible for re-entry.') {
+                    gameStatusMessage.textContent = ''; 
+                }
+                if (!canAnyReEnter && gameStatusMessage.textContent === 'Some players are eligible for re-entry.') {
+                    gameStatusMessage.textContent = '';
+                }
             }
         }
         
@@ -692,19 +756,12 @@
 
         function handleHomeNavigation() { 
             console.log("App title clicked, handleHomeNavigation called.");
-            // Removed confirm for simpler debugging for now.
-            // const confirmed = confirm("Return to Home? Current game progress will be saved if the game has started and has an ID.");
-            // console.log("Confirm result:", confirmed); 
-            // if (confirmed) {
-                if (currentGame && currentGame.id) { // Only save if it's an existing saved game or a new game that has progressed
-                    console.log("Auto-saving game before going home...");
-                    autoSaveGameProgress(); 
-                } else if (currentGame && !currentGame.id && currentGame.currentRound > 0) { // New game with rounds played but not yet explicitly saved
-                    console.log("Auto-saving new game before going home...");
-                    autoSaveGameProgress();
-                }
-                transitionToSetupView();
-            // }
+            // Simplified: always try to save if a game is in progress (even new/unsaved)
+            if (currentGame) {
+                 console.log("Attempting to save game before going home...");
+                 autoSaveGameProgress(); 
+            }
+            transitionToSetupView();
         }
         
         async function handleSuggestName() {
