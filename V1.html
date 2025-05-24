@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummy Score Keeper - V10.2</title>
+    <title>Rummy Score Keeper - V10 Animations</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -86,7 +86,7 @@
         body.light-theme .saved-game-item { border-left: 4px solid var(--btn-primary-bg-light); background-color: #fafafa; }
         body.dark-theme .saved-game-item { border-left: 4px solid var(--btn-primary-bg-dark); background-color: #2d3748; }
         body.light-theme .saved-game-item.completed-game { border-left-color: #d32f2f; background-color: #ffebee; }
-        body.dark-theme .saved-game-item.completed-game { border-left-color: #e53e3e; background-color: #3c1d1d; }
+        body.dark-theme .saved-game-item.completed-game { border-left-color: #e53e3e; background-color: #4a2e2e; }
         body.light-theme .saved-game-item p { color: var(--text-secondary-light); } 
         body.dark-theme .saved-game-item p { color: var(--text-secondary-dark); }
         body.light-theme .saved-game-item .game-name-link { color: var(--link-light); font-weight: 500; }
@@ -116,8 +116,27 @@
         body.light-theme #autoSaveNotification { background-color: #212121; color: white; }
         body.dark-theme #autoSaveNotification { background-color: #f0f2f5; color: #1f2937; }
         #autoSaveNotification.show { opacity: 1; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; margin-left: 8px;}
+        .loader { border: 3px solid #ecf0f1; border-top: 3px solid #5dade2; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; margin-left: 8px;}
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Welcome Animation */
+        @keyframes fadeInSlideDown {
+            0% { opacity: 0; transform: translateY(-20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .welcome-animation {
+            animation: fadeInSlideDown 1s ease-out forwards;
+        }
+
+        /* Winner Animation */
+        @keyframes pulseWinner {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .winner-animation {
+            animation: pulseWinner 1.5s ease-in-out 2; 
+        }
     </style>
 </head>
 <body>
@@ -201,7 +220,7 @@
         let appTitle, setupSection, gameSection, playerNameInput, addPlayerButton, knownPlayersList, playerSetupList,
             gameTargetScoreInput, openDropScoreInput, middleDropScoreInput, fullCountScoreInput,
             startNewGameButton, savedGamesContainer, themeToggleButton, currentGameNameDisplay,
-            /*suggestNameButton,*/ nameSuggestionLoader, currentRoundDisplay, gameTargetScoreDisplay, // suggestNameButton removed
+            nameSuggestionLoader, currentRoundDisplay, gameTargetScoreDisplay,
             gameOpenDropDisplay, gameMiddleDropDisplay, gameFullCountDisplay, roundScoresTableContainer,
             enterScoresButton, editLastRoundButton, gameStatusMessage, autoSaveNotification,
             scoreModal, scoreModalTitle, modalRoundNumber, modalScoreInputs, submitScoresButton, cancelScoreEntryButton;
@@ -211,9 +230,9 @@
         let currentGame = null; 
         let isEditingLastRoundGlobal = false; 
         
-        const LS_KNOWN_PLAYERS = 'rummyScorer_knownPlayers_v10_2'; // Version bump for safety
-        const LS_SAVED_GAMES_LIST = 'rummyScorer_savedGamesList_v10_2';
-        const LS_THEME = 'rummyScorer_theme_v10_2';
+        const LS_KNOWN_PLAYERS = 'rummyScorer_knownPlayers_v10';
+        const LS_SAVED_GAMES_LIST = 'rummyScorer_savedGamesList_v10';
+        const LS_THEME = 'rummyScorer_theme_v10';
 
         // Theme SVGs
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-6.364-.386l1.591-1.591M3 12h2.25m.386-6.364l1.591 1.591M12 12a2.25 2.25 0 00-2.25 2.25c0 1.242.938 2.25 2.1 2.25s2.1-.938 2.1-2.25A2.25 2.25 0 0012 12z" /></svg>`;
@@ -234,6 +253,20 @@
         }
         function loadTheme() { applyTheme(getStoredData(LS_THEME) || 'light'); }
 
+        function getFormattedEstDate(date = new Date()) { 
+            try {
+                const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/New_York' };
+                let formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
+                if (formattedDate.includes('undefined') || formattedDate.includes('GMT')) { 
+                     options.timeZone = undefined;
+                     formattedDate = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+                }
+                return formattedDate;
+            } catch (e) { 
+                return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+            }
+        }
+        
         function getFormattedEstDateTime(date = new Date()) {
             try {
                 const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' };
@@ -249,6 +282,7 @@
                 return localFormatted.replace(" (Local)", "").trim();
             }
         }
+
 
         function loadKnownPlayersDisplay() {
             const known = getStoredData(LS_KNOWN_PLAYERS) || [];
@@ -266,14 +300,14 @@
         }
         function addKnownPlayerToNewGameSetup(name) {
             if (playersForNewGameSetup.find(p => p.name.toLowerCase() === name.toLowerCase())) { alert(`${name} is already in setup.`); return; }
-            playersForNewGameSetup.push({ id: String(Date.now() + Math.random()).replace(/\./g, '_'), name: name, scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: false });
+            playersForNewGameSetup.push({ id: String(Date.now() + Math.random()).replace(/\./g, '_'), name: name, scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: false, reEntryCount: 0, reEntryEvents: [] });
             renderNewGameSetupPlayersList();
         }
         function handleAddNewPlayerToSetup() {
             const name = playerNameInput.value.trim();
             if (name) {
                 if (playersForNewGameSetup.find(p => p.name.toLowerCase() === name.toLowerCase())) { alert('Player already in setup.'); return; }
-                playersForNewGameSetup.push({ id: String(Date.now() + Math.random()).replace(/\./g, '_'), name: name, scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: false });
+                playersForNewGameSetup.push({ id: String(Date.now() + Math.random()).replace(/\./g, '_'), name: name, scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: false, reEntryCount: 0, reEntryEvents: [] });
                 addKnownPlayerToStorage(name);
                 playerNameInput.value = ''; renderNewGameSetupPlayersList();
             } else { alert('Enter player name.'); }
@@ -341,47 +375,18 @@
             } else if (newName !== null) { alert("Game name cannot be empty.");}
         }
         
-        async function fetchAndSetInitialGameName(game) {
-            nameSuggestionLoader.classList.remove('hidden');
-            const playerNames = game.players.map(p => p.name).join(', ');
-            const currentDate = getFormattedEstDateTime();
-            const prompt = `Suggest a fun, short, and thematic Rummy game name for a game between ${playerNames}, being played on ${currentDate}. Keep the name under 5 words. Only provide the name, nothing else.`;
-            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-            const payload = { contents: chatHistory };
-            const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.candidates && result.candidates.length > 0 &&
-                        result.candidates[0].content && result.candidates[0].content.parts &&
-                        result.candidates[0].content.parts.length > 0) {
-                        let suggestedName = result.candidates[0].content.parts[0].text.trim().replace(/^["*]+|["*]+$/g, '');
-                        if (suggestedName) game.name = suggestedName;
-                    }
-                } else { console.error("Gemini API Error for name suggestion:", await response.text()); }
-            } catch (error) { console.error("Fetch error for name suggestion:", error);
-            } finally {
-                nameSuggestionLoader.classList.add('hidden');
-                currentGameNameDisplay.textContent = game.name; // Update display with whatever name it has
-                autoSaveGameProgress(); // Save the game (with new or placeholder name)
-            }
+        function generateDefaultGameName(playersList) {
+            const playerNames = playersList.map(p => p.name).slice(0,2).join(' & ');
+            return `Game: ${playerNames} - ${getFormattedEstDate()}`;
         }
-
 
         function handleStartNewGame() {
             if (playersForNewGameSetup.length < 2) { alert('Select at least 2 players to start the game.'); return; }
             currentGame = {
-                id: null, name: `New Game - ${getFormattedEstDateTime()}`, // Placeholder name
+                id: null, name: generateDefaultGameName(playersForNewGameSetup), 
                 players: JSON.parse(JSON.stringify(playersForNewGameSetup)).map((p, index) => ({
                     ...p, id: String(p.id).replace(/\./g, '_'), 
-                    scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: index === 0, isComplete: false
+                    scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: index === 0, reEntryCount: 0, reEntryEvents: []
                 })),
                 currentRound: 0,
                 gameTargetScore: parseInt(gameTargetScoreInput.value) || 201,
@@ -395,7 +400,7 @@
             };
             playersForNewGameSetup = []; renderNewGameSetupPlayersList();
             transitionToGameView();
-            fetchAndSetInitialGameName(currentGame); // Fetch name after transitioning
+            autoSaveGameProgress(); 
         }
 
         function handleLoadGame(gameId) {
@@ -406,10 +411,26 @@
                 currentGame.players.forEach(p => { 
                     p.id = String(p.id).replace(/\./g, '_'); 
                     p.scores = p.scores || [];
-                    p.totalScore = p.scores.reduce((sum, sItem) => sum + (sItem ? sItem.points : 0), 0); 
-                    p.eliminated = p.eliminated || false;
+                    p.reEntryEvents = p.reEntryEvents || []; 
+                    // Recalculate totalScore based on re-entry logic on load
+                    let baseScore = 0;
+                    let sumFromRoundIndex = 0;
+                    if (p.reEntryEvents && p.reEntryEvents.length > 0) {
+                        const lastReEntry = p.reEntryEvents[p.reEntryEvents.length - 1];
+                        baseScore = lastReEntry.newBaselineScore; 
+                        sumFromRoundIndex = lastReEntry.roundIndex; 
+                    }
+                    let sumOfScoresAfterLastReEntry = 0;
+                    for (let i = sumFromRoundIndex; i < p.scores.length; i++) {
+                        if (p.scores[i]) { sumOfScoresAfterLastReEntry += p.scores[i].points; }
+                    }
+                    p.totalScore = baseScore + sumOfScoresAfterLastReEntry;
+                    
+                    p.eliminated = p.totalScore >= currentGame.gameTargetScore; 
+                    if (p.eliminated) p.totalScore = currentGame.gameTargetScore; 
                     p.canReEnterCurrentRound = p.canReEnterCurrentRound || false;
                     p.isDealer = p.isDealer || false;
+                    p.reEntryCount = p.reEntryCount || 0;
                 });
                 if (!currentGame.initialPlayerOrder) currentGame.initialPlayerOrder = currentGame.players.map(p => p.id);
                 else currentGame.initialPlayerOrder = currentGame.initialPlayerOrder.map(id => String(id).replace(/\./g, '_')); 
@@ -421,6 +442,7 @@
                 } else if (!currentDealerPlayer && currentGame.players.length > 0) {
                     currentGame.players[0].isDealer = true; 
                 }
+                currentGame.isComplete = currentGame.isComplete || false; 
 
                 gameTargetScoreInput.value = currentGame.gameTargetScore;
                 openDropScoreInput.value = currentGame.openDropScore;
@@ -441,10 +463,7 @@
             currentGame.lastSavedTimestamp = new Date().toISOString();
             if (!currentGame.id) { 
                 currentGame.id = String(Date.now()).replace(/\./g, '_'); 
-                 if (currentGame.name.startsWith("New Game")) { 
-                     const playerNames = currentGame.players.map(p => p.name).slice(0,2).join(' & ');
-                     currentGame.name = `Game: ${playerNames} - ${getFormattedEstDateTime(new Date(currentGame.lastSavedTimestamp))}`;
-                }
+                // Game name is set in handleStartNewGame
                 savedGames.push(JSON.parse(JSON.stringify(currentGame)));
             } else { 
                 const gameIndex = savedGames.findIndex(g => String(g.id) === String(currentGame.id));
@@ -453,7 +472,7 @@
             }
             setStoredData(LS_SAVED_GAMES_LIST, savedGames);
             loadSavedGamesDisplay(); 
-            currentGameNameDisplay.textContent = currentGame.name; 
+            if(currentGameNameDisplay) currentGameNameDisplay.textContent = currentGame.name; 
             showAutoSaveNotification();
         }
         
@@ -462,29 +481,29 @@
             setupSection.classList.add('hidden');
             gameSection.classList.remove('hidden');
             if(appTitle) appTitle.classList.add('navigable'); 
-            currentGameNameDisplay.textContent = currentGame.name || "Scoreboard";
-            currentRoundDisplay.textContent = currentGame.currentRound;
-            gameTargetScoreDisplay.textContent = currentGame.gameTargetScore;
-            gameOpenDropDisplay.textContent = currentGame.openDropScore;
-            gameMiddleDropDisplay.textContent = currentGame.middleDropScore;
-            gameFullCountDisplay.textContent = currentGame.fullCountScore;
-            gameStatusMessage.textContent = '';
+            if(currentGameNameDisplay) currentGameNameDisplay.textContent = currentGame.name || "Scoreboard";
+            if(currentRoundDisplay) currentRoundDisplay.textContent = currentGame.currentRound;
+            if(gameTargetScoreDisplay) gameTargetScoreDisplay.textContent = currentGame.gameTargetScore;
+            if(gameOpenDropDisplay) gameOpenDropDisplay.textContent = currentGame.openDropScore;
+            if(gameMiddleDropDisplay) gameMiddleDropDisplay.textContent = currentGame.middleDropScore;
+            if(gameFullCountDisplay) gameFullCountDisplay.textContent = currentGame.fullCountScore;
+            if(gameStatusMessage) gameStatusMessage.textContent = '';
             renderRoundScoresTable(); 
         }
         
         function transitionToSetupView() {
             console.log("Transitioning to setup view..."); 
-            gameSection.classList.add('hidden');
-            setupSection.classList.remove('hidden');
+            if(gameSection) gameSection.classList.add('hidden');
+            if(setupSection) setupSection.classList.remove('hidden');
             if(appTitle) appTitle.classList.remove('navigable'); 
             loadSavedGamesDisplay(); loadKnownPlayersDisplay(); renderNewGameSetupPlayersList(); 
-            console.log("Game section hidden:", gameSection.classList.contains('hidden')); 
-            console.log("Setup section visible:", !setupSection.classList.contains('hidden')); 
+            if(gameSection) console.log("Game section hidden:", gameSection.classList.contains('hidden')); 
+            if(setupSection) console.log("Setup section visible:", !setupSection.classList.contains('hidden')); 
         }
 
         function renderRoundScoresTable() {
             if (!currentGame || currentGame.players.length === 0) {
-                roundScoresTableContainer.innerHTML = '<p class="text-sm text-muted">No rounds played yet or no players.</p>'; return;
+                if(roundScoresTableContainer) roundScoresTableContainer.innerHTML = '<p class="text-sm text-muted">No rounds played yet or no players.</p>'; return;
             }
             let tableHTML = '<table class="min-w-full divide-y shadow-sm rounded-lg overflow-hidden"><thead><tr>';
             tableHTML += '<th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Round</th>';
@@ -513,60 +532,59 @@
             tableHTML += '<td class="px-4 py-3 text-sm font-semibold">Current Status</td>';
             currentGame.players.forEach(player => {
                 let statusText = `${player.totalScore}`;
+                 if (player.reEntryCount > 0) {
+                    statusText += ` (Re-entered ${player.reEntryCount} time${player.reEntryCount > 1 ? 's' : ''})`;
+                }
                 if (player.eliminated) {
                     statusText += ' (Out)';
-                    player.canReEnterCurrentRound = false; 
-                    if (player.scores.length === currentGame.currentRound && player.scores.length > 0) { 
-                        const scoreBeforeLastRound = player.scores.slice(0, -1).reduce((s, sc) => s + (sc ? sc.points : 0), 0);
-                        if (scoreBeforeLastRound < currentGame.gameTargetScore && player.totalScore >= currentGame.gameTargetScore) {
-                             player.canReEnterCurrentRound = true;
-                        }
-                    }
-                    if (player.canReEnterCurrentRound) {
-                         const activePlayersCount = currentGame.players.filter(p => !p.eliminated || p.id === player.id).length;
-                        if (currentGame.players.length > 2 && activePlayersCount >=1 ) { // Allow re-entry if it means at least 1 active player remains (the re-entering one)
-                            statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
-                        } else if (currentGame.players.length === 2 && activePlayersCount >=1) { // For 2 player game, allow re-entry if other is active
-                             const otherPlayer = currentGame.players.find(p => p.id !== player.id);
-                             if(otherPlayer && !otherPlayer.eliminated) {
-                                statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
-                             }
-                        }
+                    if (player.canReEnterCurrentRound) { 
+                        statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
                     }
                 }
                 tableHTML += `<td class="px-4 py-3 text-sm font-semibold">${statusText}</td>`;
             });
             tableHTML += '</tr></tfoot></table>';
-            roundScoresTableContainer.innerHTML = tableHTML;
-            roundScoresTableContainer.querySelectorAll('.re-enter-btn').forEach(btn => btn.addEventListener('click', (e) => handleReEnterGame(e.target.dataset.playerId)));
+            if(roundScoresTableContainer) roundScoresTableContainer.innerHTML = tableHTML;
+            if(roundScoresTableContainer) roundScoresTableContainer.querySelectorAll('.re-enter-btn').forEach(btn => btn.addEventListener('click', (e) => handleReEnterGame(e.target.dataset.playerId)));
             checkGameEnd(); 
         }
         
         function handleReEnterGame(playerId) {
             if (!currentGame) return;
             const playerToReEnter = currentGame.players.find(p => String(p.id) === String(playerId));
+            
             if (playerToReEnter && playerToReEnter.eliminated && playerToReEnter.canReEnterCurrentRound) {
-                const otherPlayers = currentGame.players.filter(p => p.id !== playerId);
                 let highestScoreOfOthers = 0;
-                if (otherPlayers.length > 0) {
-                     highestScoreOfOthers = Math.max(0, ...otherPlayers.map(p => p.totalScore));
+                const scoresOfOtherPlayers = currentGame.players.filter(p => p.id !== playerToReEnter.id).map(p => p.totalScore); 
+                if (scoresOfOtherPlayers.length > 0) {
+                    highestScoreOfOthers = Math.max(0, ...scoresOfOtherPlayers);
                 }
                 
-                playerToReEnter.totalScore = highestScoreOfOthers + 1;
+                const newBaselineScore = highestScoreOfOthers + 1;
+                
+                playerToReEnter.totalScore = newBaselineScore; 
                 playerToReEnter.eliminated = false;
                 playerToReEnter.canReEnterCurrentRound = false; 
+                playerToReEnter.reEntryCount = (playerToReEnter.reEntryCount || 0) + 1;
                 
-                gameStatusMessage.textContent = ''; // Clear any winner message
+                if (!playerToReEnter.reEntryEvents) playerToReEnter.reEntryEvents = [];
+                playerToReEnter.reEntryEvents.push({ roundIndex: playerToReEnter.scores.length, newBaselineScore: newBaselineScore }); 
+
+                currentGame.isComplete = false; 
+                if(gameStatusMessage) gameStatusMessage.textContent = ''; 
+                
                 renderRoundScoresTable(); 
                 autoSaveGameProgress();
-                alert(`${playerToReEnter.name} re-entered at ${playerToReEnter.totalScore}.`);
+                alert(`${playerToReEnter.name} re-entered (Count: ${playerToReEnter.reEntryCount}) at ${playerToReEnter.totalScore}.`);
+                checkGameEnd(); 
             }
         }
 
         function openScoreModal(isEditing = false, roundToEdit = -1) {
             isEditingLastRoundGlobal = isEditing; 
-            if (!currentGame || (!isGameEffectivelyActive() && !isEditing)) {
-                if(gameStatusMessage.textContent === '' && !isEditing) alert("Game seems to be over or not properly started.");
+            if (!currentGame || (!isGameEffectivelyActive() && !isEditing && !(currentGame && currentGame.isComplete && isEditing))) { 
+                if(gameStatusMessage && gameStatusMessage.textContent === '' && !isEditing && !(currentGame && currentGame.isComplete)) alert("Game seems to be over or not properly started.");
+                else if (currentGame && currentGame.isComplete && !isEditing) alert("This game is complete. Start a new game or load another.");
                 return;
             }
             const roundNumberForModal = isEditing ? roundToEdit : currentGame.currentRound + 1;
@@ -616,6 +634,11 @@
             let allScoresValid = true; let zeroScoreCount = 0; const roundScoresData = []; 
             const roundIndexBeingProcessed = isEditingLastRoundGlobal ? currentGame.currentRound - 1 : currentGame.currentRound;
 
+            const playerStatesBeforeThisRound = currentGame.players.map(p => ({ 
+                id: p.id, 
+                wasEliminated: p.eliminated,
+            }));
+
             currentGame.players.forEach(player => {
                 if (!isEditingLastRoundGlobal && player.eliminated) { player.canReEnterCurrentRound = false; return; }
                 const inputElement = document.getElementById(`score-input-${player.id}`);
@@ -626,6 +649,11 @@
                 if (scoreValue === '') { alert(`Enter score for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
                 const points = parseInt(scoreValue);
                 if (isNaN(points)) { alert(`Invalid score for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
+                
+                if (points !== 0 && points < 2) { 
+                    alert(`Minimum score for a player (if not the winner) is 2. ${player.name} entered ${points}.`);
+                    inputElement.focus(); allScoresValid = false; return;
+                }
                 if (points > currentGame.fullCountScore) { alert(`Max score for a round is ${currentGame.fullCountScore} for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
                 if (points === 0) zeroScoreCount++;
                 roundScoresData.push({ playerId: player.id, points: points, type: scoreType });
@@ -649,23 +677,69 @@
                 });
             }
             
+            // Create a temporary list of players with their provisional scores after this round
+            const provisionalPlayerStates = currentGame.players.map(p => {
+                const playerOriginalState = playerStatesBeforeThisRound.find(ps => ps.id === p.id);
+                let provisionalTotalScore;
+                
+                let baseScore = 0;
+                let sumFromRoundIndex = 0;
+                if (p.reEntryEvents && p.reEntryEvents.length > 0) {
+                    const lastReEntry = p.reEntryEvents[p.reEntryEvents.length - 1];
+                    baseScore = lastReEntry.newBaselineScore;
+                    sumFromRoundIndex = lastReEntry.roundIndex;
+                }
+
+                let sumOfScoresAfterLastReEntry = 0;
+                for (let i = sumFromRoundIndex; i < p.scores.length; i++) { 
+                    if (p.scores[i]) { sumOfScoresAfterLastReEntry += p.scores[i].points; }
+                }
+                provisionalTotalScore = baseScore + sumOfScoresAfterLastReEntry;
+
+                let provisionalEliminated = provisionalTotalScore >= currentGame.gameTargetScore;
+                if(provisionalEliminated) provisionalTotalScore = currentGame.gameTargetScore;
+
+                return {
+                    id: p.id, 
+                    name: p.name, 
+                    provisionalTotalScore,
+                    provisionalEliminated,
+                    wasPreviouslyEliminated: playerOriginalState ? playerOriginalState.wasEliminated : p.eliminated
+                };
+            });
+
+
+            // Final update of player states and re-entry eligibility based on provisional states
             currentGame.players.forEach(player => {
-                player.totalScore = player.scores.reduce((sum, sItem) => sum + (sItem ? sItem.points : 0), 0);
-                player.eliminated = player.totalScore >= currentGame.gameTargetScore;
+                const provisionalState = provisionalPlayerStates.find(p => p.id === player.id);
+                player.totalScore = provisionalState.provisionalTotalScore;
+                player.eliminated = provisionalState.provisionalEliminated;
+                
                 player.canReEnterCurrentRound = false; 
-                if (player.eliminated) {
-                    const lastRoundIndexForPlayer = player.scores.length - 1;
-                    if (lastRoundIndexForPlayer === roundIndexBeingProcessed) { 
-                        let scoreBeforeThisRound = 0;
-                        for (let i = 0; i < lastRoundIndexForPlayer; i++) {
-                            if (player.scores[i]) scoreBeforeThisRound += player.scores[i].points;
-                        }
-                        if (scoreBeforeThisRound < currentGame.gameTargetScore) { 
-                            player.canReEnterCurrentRound = true;
+                if (player.eliminated && !provisionalState.wasPreviouslyEliminated) { 
+                    if (currentGame.players.length > 2) { 
+                        const otherActivePlayersSafeProvisional = provisionalPlayerStates.filter(p_check => 
+                            p_check.id !== player.id && 
+                            !p_check.provisionalEliminated && 
+                            p_check.provisionalTotalScore < currentGame.gameTargetScore
+                        );
+                        if (otherActivePlayersSafeProvisional.length >= 1) { 
+                            let highestScoreOfAllOthersForReEntry = 0;
+                            const scoresOfAllOtherPlayers = provisionalPlayerStates
+                                .filter(p_check => p_check.id !== player.id) 
+                                .map(p_check => p_check.provisionalTotalScore); 
+                            if (scoresOfAllOtherPlayers.length > 0) {
+                                highestScoreOfAllOtherPlayersForReEntry = Math.max(0, ...scoresOfAllOtherPlayers);
+                            }
+                            const potentialReEntryScore = highestScoreOfAllOtherPlayersForReEntry + 1;
+                            if (potentialReEntryScore < currentGame.gameTargetScore) {
+                                player.canReEnterCurrentRound = true;
+                            }
                         }
                     }
                 }
             });
+
 
             if (!isEditingLastRoundGlobal) {
                 currentGame.currentRound++;
@@ -718,30 +792,30 @@
             if (!currentGame) return;
             const activePlayers = currentGame.players.filter(p => !p.eliminated);
             let gameHasEnded = false;
-            currentGame.isComplete = false; // Default to not complete
+            currentGame.isComplete = false; 
 
-            if (currentGame.players.length > 0 && activePlayers.length === 0) {
+            const anyPlayerCanReEnter = currentGame.players.some(p => p.eliminated && p.canReEnterCurrentRound);
+
+            if (currentGame.players.length > 0 && activePlayers.length === 0 && !anyPlayerCanReEnter) {
                 gameStatusMessage.textContent = "All players eliminated! Game Over."; gameHasEnded = true;
                 currentGame.isComplete = true;
-            } else if (currentGame.players.length >= 2 && activePlayers.length === 1 && currentGame.currentRound > 0) { 
+            } else if (currentGame.players.length >= 2 && activePlayers.length === 1 && currentGame.currentRound > 0 && !anyPlayerCanReEnter) { 
                 gameStatusMessage.textContent = `${activePlayers[0].name} is the winner!`; gameHasEnded = true;
                 currentGame.isComplete = true;
             }
             
             enterScoresButton.disabled = gameHasEnded || !isGameEffectivelyActive();
-            editLastRoundButton.disabled = gameHasEnded || currentGame.currentRound === 0;
+            editLastRoundButton.disabled = currentGame.currentRound === 0; 
 
             if (gameHasEnded) {
                  autoSaveGameProgress(); 
             } else {
-                const canAnyReEnter = currentGame.players.some(p => p.eliminated && p.canReEnterCurrentRound);
-                if (canAnyReEnter) {
+                if (anyPlayerCanReEnter) {
                     gameStatusMessage.textContent = 'Some players are eligible for re-entry.';
-                } else if (gameStatusMessage.textContent === 'Some players are eligible for re-entry.') {
-                    gameStatusMessage.textContent = ''; 
-                }
-                if (!canAnyReEnter && gameStatusMessage.textContent === 'Some players are eligible for re-entry.') {
-                    gameStatusMessage.textContent = '';
+                } else {
+                    if (gameStatusMessage.textContent.includes('eligible for re-entry') || gameStatusMessage.textContent.includes('winner') || gameStatusMessage.textContent.includes('Game Over')) {
+                         gameStatusMessage.textContent = ''; 
+                    }
                 }
             }
         }
@@ -750,77 +824,24 @@
             if (!currentGame) return false;
             const activePlayers = currentGame.players.filter(p => !p.eliminated);
             if (activePlayers.length === 0 && currentGame.players.length > 0) return false; 
-            if (currentGame.players.length >= 2 && activePlayers.length < 2 ) return false; 
+            if (currentGame.players.length >= 2 && activePlayers.length < 2 ) {
+                const canAnyoneReEnter = currentGame.players.some(p => p.eliminated && p.canReEnterCurrentRound);
+                if (canAnyoneReEnter) return true; 
+                return false;
+            }
             return true;
         }
 
         function handleHomeNavigation() { 
             console.log("App title clicked, handleHomeNavigation called.");
-            // Simplified: always try to save if a game is in progress (even new/unsaved)
-            if (currentGame) {
-                 console.log("Attempting to save game before going home...");
-                 autoSaveGameProgress(); 
+            if (currentGame) { 
+                console.log("Auto-saving game before going home...");
+                autoSaveGameProgress(); 
             }
             transitionToSetupView();
         }
         
-        async function handleSuggestName() {
-            if (!currentGame || currentGame.players.length === 0) {
-                alert("Please start a game and add players first.");
-                return;
-            }
-            nameSuggestionLoader.classList.remove('hidden');
-            suggestNameButton.disabled = true;
-
-            const playerNames = currentGame.players.map(p => p.name).join(', ');
-            const currentDate = getFormattedEstDateTime();
-            const prompt = `Suggest a fun, short, and thematic Rummy game name for a game between ${playerNames}, being played on ${currentDate}. Keep the name under 5 words. Only provide the name, nothing else.`;
-
-            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-            const payload = { contents: chatHistory };
-            const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error("Gemini API Error:", errorData);
-                    alert(`Error suggesting name: ${errorData.error?.message || response.statusText}`);
-                    return;
-                }
-                const result = await response.json();
-                
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    let suggestedName = result.candidates[0].content.parts[0].text.trim();
-                    suggestedName = suggestedName.replace(/^["*]+|["*]+$/g, ''); 
-                    
-                    if (suggestedName) {
-                        currentGame.name = suggestedName;
-                        currentGameNameDisplay.textContent = currentGame.name;
-                        autoSaveGameProgress(); 
-                        alert(`Suggested Game Name: ${suggestedName}`);
-                    } else {
-                        alert("Could not get a name suggestion. Please try again.");
-                    }
-                } else {
-                    console.error("Unexpected Gemini API response structure:", result);
-                    alert("Could not get a name suggestion (unexpected response). Please try again.");
-                }
-            } catch (error) {
-                console.error("Fetch error calling Gemini API:", error);
-                alert("Error connecting to name suggestion service. Please check your connection and try again.");
-            } finally {
-                nameSuggestionLoader.classList.add('hidden');
-                suggestNameButton.disabled = false;
-            }
-        }
+        // handleSuggestName is removed as the button was removed. Auto-suggestion on new game start.
 
         function initializeApp() {
             appTitle = document.getElementById('appTitle');
@@ -838,8 +859,7 @@
             savedGamesContainer = document.getElementById('savedGamesContainer');
             themeToggleButton = document.getElementById('themeToggle');
             currentGameNameDisplay = document.getElementById('currentGameNameDisplay');
-            suggestNameButton = document.getElementById('suggestNameButton');
-            nameSuggestionLoader = document.getElementById('nameSuggestionLoader');
+            nameSuggestionLoader = document.getElementById('nameSuggestionLoader'); 
             currentRoundDisplay = document.getElementById('currentRoundDisplay');
             gameTargetScoreDisplay = document.getElementById('gameTargetScoreDisplay');
             gameOpenDropDisplay = document.getElementById('gameOpenDropDisplay');
@@ -848,7 +868,6 @@
             roundScoresTableContainer = document.getElementById('roundScoresTableContainer');
             enterScoresButton = document.getElementById('enterScoresButton');
             editLastRoundButton = document.getElementById('editLastRoundButton');
-            // homeButton variable removed as element was removed. Listener is on appTitle.
             gameStatusMessage = document.getElementById('gameStatusMessage');
             autoSaveNotification = document.getElementById('autoSaveNotification');
             scoreModal = document.getElementById('scoreModal');
@@ -872,7 +891,13 @@
                 isEditingLastRoundGlobal = false; 
             });
             themeToggleButton.addEventListener('click', toggleTheme);
-            if(suggestNameButton) suggestNameButton.addEventListener('click', handleSuggestName);
+            
+            // Suggest name button was removed, auto-suggest on new game start via fetchAndSetInitialGameName
+            // const suggestNameBtnElement = document.getElementById('suggestNameButton'); 
+            // if(suggestNameBtnElement) suggestNameBtnElement.addEventListener('click', () => {
+            //    if(currentGame) fetchAndSetInitialGameName(currentGame); 
+            // });
+
 
             loadTheme(); loadKnownPlayersDisplay(); loadSavedGamesDisplay(); renderNewGameSetupPlayersList();
         }
