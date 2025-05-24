@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummy Score Keeper - V10 Animations</title>
+    <title>Rummy Score Keeper - V10.27 Fixed</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -118,25 +118,6 @@
         #autoSaveNotification.show { opacity: 1; }
         .loader { border: 3px solid #ecf0f1; border-top: 3px solid #5dade2; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; margin-left: 8px;}
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Welcome Animation */
-        @keyframes fadeInSlideDown {
-            0% { opacity: 0; transform: translateY(-20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        .welcome-animation {
-            animation: fadeInSlideDown 1s ease-out forwards;
-        }
-
-        /* Winner Animation */
-        @keyframes pulseWinner {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .winner-animation {
-            animation: pulseWinner 1.5s ease-in-out 2; 
-        }
     </style>
 </head>
 <body>
@@ -230,9 +211,9 @@
         let currentGame = null; 
         let isEditingLastRoundGlobal = false; 
         
-        const LS_KNOWN_PLAYERS = 'rummyScorer_knownPlayers_v10';
-        const LS_SAVED_GAMES_LIST = 'rummyScorer_savedGamesList_v10';
-        const LS_THEME = 'rummyScorer_theme_v10';
+        const LS_KNOWN_PLAYERS = 'rummyScorer_knownPlayers_v10_3'; 
+        const LS_SAVED_GAMES_LIST = 'rummyScorer_savedGamesList_v10_3';
+        const LS_THEME = 'rummyScorer_theme_v10_3';
 
         // Theme SVGs
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-6.364-.386l1.591-1.591M3 12h2.25m.386-6.364l1.591 1.591M12 12a2.25 2.25 0 00-2.25 2.25c0 1.242.938 2.25 2.1 2.25s2.1-.938 2.1-2.25A2.25 2.25 0 0012 12z" /></svg>`;
@@ -266,23 +247,6 @@
                 return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
             }
         }
-        
-        function getFormattedEstDateTime(date = new Date()) {
-            try {
-                const options = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' };
-                let formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
-                formattedDate = formattedDate.replace(" (Local)", "").trim();
-                if (!formattedDate.includes('ET') && !formattedDate.includes('EDT') && !formattedDate.includes('EST')) {
-                    options.timeZone = undefined; 
-                    formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
-                }
-                return formattedDate;
-            } catch (e) { 
-                const localFormatted = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-                return localFormatted.replace(" (Local)", "").trim();
-            }
-        }
-
 
         function loadKnownPlayersDisplay() {
             const known = getStoredData(LS_KNOWN_PLAYERS) || [];
@@ -338,7 +302,7 @@
                 const playerNames = game.players.map(p => p.name).slice(0,3).join(', ') + (game.players.length > 3 ? '...' : '');
                 let gameStatusInfo = game.isComplete ? ' (Complete)' : '';
                 div.innerHTML = `
-                    <div class="flex-grow"><p class="font-semibold game-name-link">${game.name || `Game from ${getFormattedEstDateTime(new Date(game.lastSavedTimestamp))}`}${gameStatusInfo}</p><p class="text-xs">Players: ${playerNames}</p><p class="text-xs">Round: ${game.currentRound}, Target: ${game.gameTargetScore}</p><p class="text-xs text-muted">Last Saved: ${getFormattedEstDateTime(new Date(game.lastSavedTimestamp))}</p></div>
+                    <div class="flex-grow"><p class="font-semibold game-name-link">${game.name || `Game from ${getFormattedEstDate(new Date(game.lastSavedTimestamp))}`}${gameStatusInfo}</p><p class="text-xs">Players: ${playerNames}</p><p class="text-xs">Round: ${game.currentRound}, Target: ${game.gameTargetScore}</p><p class="text-xs text-muted">Last Saved: ${getFormattedEstDate(new Date(game.lastSavedTimestamp))}</p></div>
                     <div class="flex gap-2 mt-2 sm:mt-0 self-end sm:self-center flex-shrink-0">
                         <button class="btn btn-text-blue text-xs py-1 px-2 edit-name-btn" data-game-id="${game.id}">Edit Name</button>
                         <button class="btn btn-text-green text-xs py-1 px-2 load-game-btn" data-game-id="${game.id}">${game.isComplete ? 'View' : 'Continue'}</button>
