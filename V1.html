@@ -324,7 +324,18 @@
                     // This might happen if the ID was passed but somehow not in the list after re-filtering/mapping.
                     console.warn("Attempted to delete known player, but ID not found after final processing:", playerId);
                 }
-                loadKnownPlayersDisplay(); // Refresh the display
+
+                // Also remove from current game setup if present
+                const initialSetupLength = playersForNewGameSetup.length;
+                playersForNewGameSetup = playersForNewGameSetup.filter(
+                    playerInSetup => playerInSetup.name.toLowerCase() !== playerId
+                );
+
+                if (playersForNewGameSetup.length < initialSetupLength) {
+                    renderNewGameSetupPlayersList(); // Refresh the "Players for New Game:" display
+                }
+
+                loadKnownPlayersDisplay(); // Refresh the known players list display
             }
         }
 
