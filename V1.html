@@ -260,7 +260,17 @@
         }
         function addKnownPlayerToStorage(name) {
             let known = getStoredData(LS_KNOWN_PLAYERS) || [];
-            if (!known.includes(name)) { known.push(name); setStoredData(LS_KNOWN_PLAYERS, known.sort()); loadKnownPlayersDisplay(); }
+            // Ensure all names in known array are lowercase for consistent check and storage.
+            // This also handles migration of any old mixed-case data.
+            known = known.map(k => String(k).toLowerCase());
+
+            const lowerCaseName = name.toLowerCase();
+            if (!known.includes(lowerCaseName)) {
+                known.push(lowerCaseName);
+                setStoredData(LS_KNOWN_PLAYERS, known.sort());
+            }
+            // Always call loadKnownPlayersDisplay to refresh, especially if migration changed casing.
+            loadKnownPlayersDisplay();
         }
         function addKnownPlayerToNewGameSetup(name) {
             if (playersForNewGameSetup.find(p => p.name.toLowerCase() === name.toLowerCase())) { alert(`${name} is already in setup.`); return; }
@@ -518,13 +528,16 @@
             const playerToReEnter = currentGame.players.find(p => String(p.id) === String(playerId));
             
             if (playerToReEnter && playerToReEnter.eliminated && playerToReEnter.canReEnterCurrentRound) {
-                let highestScoreOfOthers = 0;
-                const scoresOfOtherPlayers = currentGame.players.filter(p => p.id !== playerToReEnter.id).map(p => p.totalScore); 
-                if (scoresOfOtherPlayers.length > 0) {
-                    highestScoreOfOthers = Math.max(0, ...scoresOfOtherPlayers);
+                let highestScoreOfOthersBelowTarget = 0;
+                const scoresOfOtherPlayersBelowTarget = currentGame.players
+                    .filter(p => p.id !== playerToReEnter.id && p.totalScore < currentGame.gameTargetScore)
+                    .map(p => p.totalScore);
+
+                if (scoresOfOtherPlayersBelowTarget.length > 0) {
+                    highestScoreOfOthersBelowTarget = Math.max(0, ...scoresOfOtherPlayersBelowTarget);
                 }
-                
-                const newBaselineScore = highestScoreOfOthers + 1;
+                // If scoresOfOtherPlayersBelowTarget is empty, highestScoreOfOthersBelowTarget remains 0.
+                const newBaselineScore = highestScoreOfOthersBelowTarget + 1;
                 
                 playerToReEnter.totalScore = newBaselineScore; 
                 playerToReEnter.eliminated = false;
@@ -689,12 +702,18 @@
                         );
                         if (otherActivePlayersSafeProvisional.length >= 1) { 
                             let highestScoreOfAllOthersForReEntry = 0;
-                            const scoresOfAllOtherPlayers = provisionalPlayerStates
-                                .filter(p_check => p_check.id !== player.id) 
-                                .map(p_check => p_check.provisionalTotalScore); 
-                            if (scoresOfAllOtherPlayers.length > 0) {
-                                highestScoreOfAllOtherPlayersForReEntry = Math.max(0, ...scoresOfAllOtherPlayers);
+                            // MODIFICATION START: Filter for players strictly below target score
+                            const scoresOfEligibleOthersForReEntry = provisionalPlayerStates
+                                .filter(p_check => p_check.id !== player.id && p_check.provisionalTotalScore < currentGame.gameTargetScore)
+                                .map(p_check => p_check.provisionalTotalScore);
+
+                            if (scoresOfEligibleOthersForReEntry.length > 0) {
+                                highestScoreOfAllOthersForReEntry = Math.max(0, ...scoresOfEligibleOthersForReEntry);
+                            } else {
+                                // If no other players are strictly below target, re-entry baseline is 0.
+                                highestScoreOfAllOthersForReEntry = 0;
                             }
+                            // MODIFICATION END
                             const potentialReEntryScore = highestScoreOfAllOtherPlayersForReEntry + 1;
                             if (potentialReEntryScore < currentGame.gameTargetScore) {
                                 player.canReEnterCurrentRound = true;
