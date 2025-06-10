@@ -249,32 +249,70 @@
         }
 
         function loadKnownPlayersDisplay() {
-            const known = getStoredData(LS_KNOWN_PLAYERS) || [];
-            knownPlayersList.innerHTML = known.length === 0 ? '<p class="text-sm text-muted">No players saved yet.</p>' : '';
-            known.forEach(name => {
+            const knownPlayerObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
+            // Temporary migration for any remaining string arrays, assuming this is the first load after an update.
+            // More robust migration should be one-time if possible.
+            const migratedObjects = knownPlayerObjects.map(entry => {
+                 if (typeof entry === 'string') { return { id: entry.toLowerCase(), displayName: entry }; }
+                 return entry;
+            }).filter(entry => entry && typeof entry.id === 'string' && typeof entry.displayName === 'string');
+
+            if (migratedObjects.length !== knownPlayerObjects.length) { // If migration happened
+                setStoredData(LS_KNOWN_PLAYERS, migratedObjects); // Save migrated list
+            }
+
+            knownPlayersList.innerHTML = migratedObjects.length === 0 ? '<p class="text-sm text-muted">No players saved yet.</p>' : '';
+            // Sort by displayName for display
+            migratedObjects.sort((a,b) => a.displayName.localeCompare(b.displayName)).forEach(playerObj => {
                 const btn = document.createElement('button');
-                btn.className = 'btn btn-secondary text-xs py-1 px-2'; btn.textContent = name;
-                btn.addEventListener('click', () => addKnownPlayerToNewGameSetup(name));
+                btn.className = 'btn btn-secondary text-xs py-1 px-2';
+                btn.textContent = playerObj.displayName; // Display the original casing
+                // Pass the displayName (which includes original casing) to addKnownPlayerToNewGameSetup
+                btn.addEventListener('click', () => addKnownPlayerToNewGameSetup(playerObj.displayName));
                 knownPlayersList.appendChild(btn);
             });
         }
         function addKnownPlayerToStorage(name) {
-            let known = getStoredData(LS_KNOWN_PLAYERS) || [];
-            // Ensure all names in known array are lowercase for consistent check and storage.
-            // This also handles migration of any old mixed-case data.
-            known = known.map(k => String(k).toLowerCase());
+            let knownPlayersObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
 
-            const lowerCaseName = name.toLowerCase();
-            if (!known.includes(lowerCaseName)) {
-                known.push(lowerCaseName);
-                setStoredData(LS_KNOWN_PLAYERS, known.sort());
+            // Migration: Convert old string array to new object array
+            knownPlayersObjects = knownPlayersObjects.map(entry => {
+                if (typeof entry === 'string') {
+                    return { id: entry.toLowerCase(), displayName: entry };
+                }
+                return entry; // Already new format or other unexpected data
+            }).filter(entry => entry && typeof entry.id === 'string' && typeof entry.displayName === 'string'); // Ensure valid objects
+
+            const lowerCaseId = name.toLowerCase();
+            const existingPlayerObj = knownPlayersObjects.find(p => p.id === lowerCaseId);
+
+            if (!existingPlayerObj) {
+                const newPlayerObj = { id: lowerCaseId, displayName: name }; // Store original case in displayName
+                knownPlayersObjects.push(newPlayerObj);
+                knownPlayersObjects.sort((a, b) => a.displayName.localeCompare(b.displayName));
+                setStoredData(LS_KNOWN_PLAYERS, knownPlayersObjects);
             }
-            // Always call loadKnownPlayersDisplay to refresh, especially if migration changed casing.
+            // If existingPlayerObj is found, we do nothing to preserve the original displayName.
+
             loadKnownPlayersDisplay();
         }
-        function addKnownPlayerToNewGameSetup(name) {
-            if (playersForNewGameSetup.find(p => p.name.toLowerCase() === name.toLowerCase())) { alert(`${name} is already in setup.`); return; }
-            playersForNewGameSetup.push({ id: String(Date.now() + Math.random()).replace(/\./g, '_'), name: name, scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: false, reEntryCount: 0, reEntryEvents: [] });
+        function addKnownPlayerToNewGameSetup(displayName) { // Parameter is now displayName
+            // Duplicate check in setup list is case-insensitive using the displayName
+            if (playersForNewGameSetup.find(p => p.name.toLowerCase() === displayName.toLowerCase())) {
+                alert(`${displayName} is already in setup.`); return;
+            }
+            // Add to setup list using the displayName (which has original casing)
+            playersForNewGameSetup.push({
+                id: String(Date.now() + Math.random()).replace(/\./g, '_'),
+                name: displayName, // Use the passed displayName
+                scores: [],
+                totalScore: 0,
+                eliminated: false,
+                canReEnterCurrentRound: false,
+                isDealer: false,
+                reEntryCount: 0,
+                reEntryEvents: []
+            });
             renderNewGameSetupPlayersList();
         }
         function handleAddNewPlayerToSetup() {
