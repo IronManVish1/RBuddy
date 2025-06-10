@@ -146,7 +146,7 @@
             </div>
             <div class="mb-8">
                 <h3 class="text-lg font-medium mb-2">Players for New Game:</h3>
-                <div id="playerSetupList" class="space-y-2"></div>
+                <div id="playerSetupList" class="flex flex-wrap gap-1"></div>
             </div>
             <fieldset class="mb-8 border p-4 rounded-md">
                 <legend class="text-lg font-medium px-2">New Game Settings</legend>
@@ -396,8 +396,10 @@
             playerSetupList.innerHTML = playersForNewGameSetup.length === 0 ? '<p class="text-sm text-muted">Add players for new game.</p>' : '';
             playersForNewGameSetup.forEach((player) => {
                 const div = document.createElement('div');
-                div.className = 'flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md shadow-sm';
-                div.innerHTML = `<span class="text-gray-700 dark:text-gray-200">${player.name}</span><button class="btn btn-text-danger text-xs font-semibold" data-id="${player.id}">REMOVE</button>`;
+                // New classes for the wrapper div
+                div.className = 'player-setup-entry inline-flex items-center mb-1 mr-2 px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded-md shadow-sm';
+                // New innerHTML with updated classes for span and button
+                div.innerHTML = `<span class="text-gray-700 dark:text-gray-200 text-sm">${player.name}</span><button class="btn btn-text-danger text-xs py-0 px-1 font-semibold ml-2" data-id="${player.id}">REMOVE</button>`;
                 div.querySelector('button').addEventListener('click', (e) => removePlayerFromNewGameSetup(e.target.dataset.id));
                 playerSetupList.appendChild(div);
             });
