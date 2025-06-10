@@ -44,6 +44,10 @@
         body.dark-theme ::-webkit-scrollbar-thumb:hover { background: #718096; }
         input[type="text"], input[type="number"] { border-radius: 9999px; padding: 0.65rem 1rem; transition: background-color 0.3s, border-color 0.3s, color 0.3s; width: 100%; }
         body.light-theme input[type="text"], body.light-theme input[type="number"] { background-color: var(--input-bg-light); border: 1px solid var(--input-border-light); color: var(--input-text-light); }
+        /* Style for Known Player buttons to not be all uppercase */
+        #knownPlayersList button.btn-secondary {
+            text-transform: none;
+        }
         body.dark-theme input[type="text"], body.dark-theme input[type="number"] { background-color: var(--input-bg-dark); border: 1px solid var(--input-border-dark); color: var(--input-text-dark); }
         body.light-theme input[type="text"]:focus, body.light-theme input[type="number"]:focus { border-color: var(--btn-primary-bg-light); box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2); }
         body.dark-theme input[type="text"]:focus, body.dark-theme input[type="number"]:focus { border-color: var(--btn-primary-bg-dark); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3); }
