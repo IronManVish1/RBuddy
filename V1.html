@@ -188,6 +188,31 @@
 .player-just-eliminated-animation { /* This class will be applied to a <td> */
     animation: flash-eliminated-player-cell 1.5s ease-out;
 }
+
+/* Animation for Winner Message */
+@keyframes animate-winner-message {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.winner-message-animate {
+    animation: animate-winner-message 0.5s ease-out forwards;
+}
+
+/* Styling for Winner's Cells in Table Footer */
+body.light-theme .winner-highlight-cell { /* Applied to <td> */
+    background-color: rgba(255, 215, 0, 0.3) !important; /* Light gold, semi-transparent */
+}
+
+body.dark-theme .winner-highlight-cell { /* Applied to <td> */
+    background-color: rgba(255, 215, 0, 0.4) !important; /* Slightly more opaque gold for dark theme */
+}
     </style>
 </head>
 <body>
@@ -752,9 +777,13 @@ function transitionToSetupView() {
                     }
                 }
                 let tdClasses = "px-4 py-3 text-sm font-semibold"; // Original classes for the cell
+
                 if (player.justEliminated) {
-                    tdClasses += " player-just-eliminated-animation"; // Add animation class
-                    player.justEliminated = false; // Reset flag immediately after using it for this render
+                    tdClasses += " player-just-eliminated-animation";
+                    player.justEliminated = false; // Reset flag after use
+                } else if (player.isWinner === true) { // Check if the player is the winner
+                    tdClasses += " winner-highlight-cell";
+                    // player.isWinner is a persistent flag for this game state, not reset here
                 }
                 tableHTML += `<td class="${tdClasses}">${statusText}</td>`;
             });
@@ -1022,13 +1051,38 @@ function transitionToSetupView() {
             let gameHasEnded = false;
             currentGame.isComplete = false; 
 
+            // At the beginning of checkGameEnd, or after currentGame.isComplete is reset
+            if (currentGame && currentGame.players) { // Ensure currentGame and players exist
+                currentGame.players.forEach(player => {
+                    player.isWinner = false; // Reset for all players
+                });
+            }
+
             const anyPlayerCanReEnter = currentGame.players.some(p => p.eliminated && p.canReEnterCurrentRound);
 
             if (currentGame.players.length > 0 && activePlayers.length === 0 && !anyPlayerCanReEnter) {
                 gameStatusMessage.textContent = "All players eliminated! Game Over."; gameHasEnded = true;
                 currentGame.isComplete = true;
             } else if (currentGame.players.length >= 2 && activePlayers.length === 1 && currentGame.currentRound > 0 && !anyPlayerCanReEnter) { 
-                gameStatusMessage.textContent = `${activePlayers[0].name} is the winner!`; gameHasEnded = true;
+                gameStatusMessage.textContent = `${activePlayers[0].name} is the winner!`;
+
+                // Set isWinner flag on the winning player object
+                if (activePlayers[0]) { // Ensure winner exists
+                    const winningPlayerId = activePlayers[0].id;
+                    const actualWinningPlayer = currentGame.players.find(p => p.id === winningPlayerId);
+                    if (actualWinningPlayer) {
+                        actualWinningPlayer.isWinner = true;
+                    }
+                }
+
+                // Apply animation to gameStatusMessage
+                if (gameStatusMessage) {
+                    gameStatusMessage.classList.remove('winner-message-animate'); // Remove if already there, to allow re-animation
+                    // Force reflow to restart animation if class is re-added
+                    void gameStatusMessage.offsetWidth;
+                    gameStatusMessage.classList.add('winner-message-animate');
+                }
+                gameHasEnded = true;
                 currentGame.isComplete = true;
             }
             
