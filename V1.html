@@ -213,6 +213,68 @@ body.light-theme .winner-highlight-cell { /* Applied to <td> */
 body.dark-theme .winner-highlight-cell { /* Applied to <td> */
     background-color: rgba(255, 215, 0, 0.4) !important; /* Slightly more opaque gold for dark theme */
 }
+
+/* Winner Celebration Overlay */
+.winner-celebration-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.particle {
+    position: absolute;
+    top: -20px; /* Start above the screen */
+    opacity: 1;
+    will-change: transform, opacity; /* Performance hint */
+}
+
+/* Confetti Shapes */
+.confetti {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px; /* Slightly rounded square */
+}
+.confetti.circle {
+    border-radius: 50%;
+}
+
+/* Streamer Shape */
+.streamer {
+    width: 6px;
+    height: 100px; /* Long and thin */
+    border-radius: 3px;
+}
+
+/* Colors (can be expanded) */
+.color-red { background-color: #e74c3c; }
+.color-yellow { background-color: #f1c40f; }
+.color-blue { background-color: #3498db; }
+.color-green { background-color: #2ecc71; }
+.color-purple { background-color: #9b59b6; }
+.color-orange { background-color: #e67e22; }
+
+
+/* Animations */
+@keyframes fall-and-fade {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(110vh) rotate(720deg); /* Fall below screen, rotate a bit */
+        opacity: 0;
+    }
+}
+
+/* Applying animation - duration and delay will be varied by JS or multiple classes */
+.animate-fall-1 { animation: fall-and-fade 3s linear forwards; }
+.animate-fall-2 { animation: fall-and-fade 4s linear forwards; }
+.animate-fall-3 { animation: fall-and-fade 5s linear forwards; }
     </style>
 </head>
 <body>
@@ -504,6 +566,54 @@ function handleDeleteKnownPlayer(playerId) {
 
         loadKnownPlayersDisplay(); // Refresh the known players list display
     }
+}
+
+function showWinnerCelebrationOverlay() {
+    const overlay = document.createElement('div');
+    overlay.className = 'winner-celebration-overlay';
+
+    const numConfetti = 70; // Number of confetti particles
+    const numStreamers = 15; // Number of streamers
+    const colors = ['color-red', 'color-yellow', 'color-blue', 'color-green', 'color-purple', 'color-orange'];
+    const confettiShapes = ['confetti', 'confetti circle'];
+    const animationDurations = ['animate-fall-1', 'animate-fall-2', 'animate-fall-3']; // Corresponds to 3s, 4s, 5s
+
+    // Create Confetti
+    for (let i = 0; i < numConfetti; i++) {
+        const confettiPiece = document.createElement('div');
+        const shape = confettiShapes[Math.floor(Math.random() * confettiShapes.length)];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const animClass = animationDurations[Math.floor(Math.random() * animationDurations.length)];
+
+        confettiPiece.className = `particle ${shape} ${color} ${animClass}`;
+        confettiPiece.style.left = Math.random() * 100 + 'vw';
+        confettiPiece.style.animationDelay = Math.random() * 1.5 + 's';
+        confettiPiece.style.transform = `translateX(${(Math.random() * 60) - 30}px) rotate(0deg)`;
+
+        overlay.appendChild(confettiPiece);
+    }
+
+    // Create Streamers
+    for (let i = 0; i < numStreamers; i++) {
+        const streamerPiece = document.createElement('div');
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const animClass = animationDurations[1 + Math.floor(Math.random() * (animationDurations.length - 1))];
+
+        streamerPiece.className = `particle streamer ${color} ${animClass}`;
+        streamerPiece.style.left = Math.random() * 100 + 'vw';
+        streamerPiece.style.animationDelay = Math.random() * 2 + 's';
+        streamerPiece.style.transform = `translateX(${(Math.random() * 40) - 20}px) rotate(${(Math.random() * 60) - 30}deg)`;
+
+        overlay.appendChild(streamerPiece);
+    }
+
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+        if (document.body.contains(overlay)) { // Check if overlay still exists before trying to remove
+            document.body.removeChild(overlay);
+        }
+    }, 7000); // Max animation duration (5s) + max animation delay (2s)
 }
 
         function handleDeleteGame(gameId) {
@@ -1082,6 +1192,7 @@ function transitionToSetupView() {
                     void gameStatusMessage.offsetWidth;
                     gameStatusMessage.classList.add('winner-message-animate');
                 }
+                showWinnerCelebrationOverlay();
                 gameHasEnded = true;
                 currentGame.isComplete = true;
             }
