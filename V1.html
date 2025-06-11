@@ -172,6 +172,22 @@
         .new-score-row-highlight > td { /* Apply to TDs for better background control */
             animation: highlight-new-row 1.5s ease-out;
         }
+
+@keyframes flash-eliminated-player-cell {
+    0% {
+        background-color: rgba(211, 47, 47, 0.6); /* Semi-transparent danger red */
+    }
+    50% {
+        background-color: rgba(211, 47, 47, 0.3); /* Dimmer highlight */
+    }
+    100% {
+        background-color: transparent; /* Fade to transparent */
+    }
+}
+
+.player-just-eliminated-animation { /* This class will be applied to a <td> */
+    animation: flash-eliminated-player-cell 1.5s ease-out;
+}
     </style>
 </head>
 <body>
@@ -735,7 +751,12 @@ function transitionToSetupView() {
                         statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
                     }
                 }
-                tableHTML += `<td class="px-4 py-3 text-sm font-semibold">${statusText}</td>`;
+                let tdClasses = "px-4 py-3 text-sm font-semibold"; // Original classes for the cell
+                if (player.justEliminated) {
+                    tdClasses += " player-just-eliminated-animation"; // Add animation class
+                    player.justEliminated = false; // Reset flag immediately after using it for this render
+                }
+                tableHTML += `<td class="${tdClasses}">${statusText}</td>`;
             });
             tableHTML += '</tr></tfoot></table>';
             if(roundScoresTableContainer) roundScoresTableContainer.innerHTML = tableHTML;
@@ -907,8 +928,19 @@ function transitionToSetupView() {
             // Final update of player states and re-entry eligibility based on provisional states
             currentGame.players.forEach(player => {
                 const provisionalState = provisionalPlayerStates.find(p => p.id === player.id);
+                if (!provisionalState) return; // Should not happen
+
                 player.totalScore = provisionalState.provisionalTotalScore;
                 player.eliminated = provisionalState.provisionalEliminated;
+
+                // Initialize/reset justEliminated flag for all players each time scores are processed
+                player.justEliminated = false;
+
+                // Check if this player was newly eliminated in this round/edit
+                // provisionalState.wasPreviouslyEliminated should be correctly set from the provisionalPlayerStates map
+                if (player.eliminated && provisionalState && !provisionalState.wasPreviouslyEliminated) {
+                    player.justEliminated = true;
+                }
 
                 player.canReEnterCurrentRound = false;
                 if (player.eliminated && !provisionalState.wasPreviouslyEliminated) {
