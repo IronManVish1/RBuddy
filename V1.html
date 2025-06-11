@@ -81,6 +81,20 @@
         body.light-theme .btn-text-blue { color: var(--link-light); }
         body.dark-theme .btn-text-blue { color: var(--link-dark); }
         .btn-text-blue:hover { background-color: rgba(25, 118, 210, 0.1); }
+
+        #knownPlayersList button.btn-secondary {
+            text-transform: none;
+        }
+
+        .known-player-delete-btn {
+            display: inline-flex !important;
+            visibility: visible !important;
+            text-transform: none !important;
+            font-size: 0.75rem !important;    /* text-xs */
+            line-height: 1rem !important;     /* lineheight for text-xs */
+            padding: 0.1rem 0.25rem !important; /* minimal effective padding */
+            /* Color is intended to be handled by .btn-text-danger and its theme overrides */
+        }
         .score-option-btn { font-size: 0.75rem; padding: 0.35rem 0.6rem; border: 1px solid; border-radius: 9999px; }
         body.light-theme .score-option-btn { background-color: #e0e0e0; color: #374151; border-color: #bdbdbd; }
         body.dark-theme .score-option-btn { background-color: #4b5563; color: #e5e7eb; border-color: #6b7280; }
@@ -182,7 +196,7 @@
             </div>
             <div class="mb-8">
                 <h3 class="text-lg font-medium mb-2">Players for New Game:</h3>
-                <div id="playerSetupList" class="space-y-2"></div>
+                <div id="playerSetupList" class="flex flex-wrap gap-1"></div>
             </div>
             <fieldset class="mb-8 border p-4 rounded-md">
                 <legend class="text-lg font-medium px-2">New Game Settings</legend>
@@ -289,15 +303,59 @@
         }
 
         function loadKnownPlayersDisplay() {
-            const known = getStoredData(LS_KNOWN_PLAYERS) || [];
-            knownPlayersList.innerHTML = known.length === 0 ? '<p class="text-sm text-muted">No players saved yet.</p>' : '';
-            known.forEach(name => {
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-secondary text-xs py-1 px-2'; btn.textContent = name;
-                btn.addEventListener('click', () => addKnownPlayerToNewGameSetup(name));
-                knownPlayersList.appendChild(btn);
-            });
+    let knownPlayerObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
+
+    let migrationOccurred = false;
+    const processedObjects = knownPlayerObjects.map(entry => {
+        if (typeof entry === 'string') {
+            migrationOccurred = true;
+            return { id: entry.toLowerCase(), displayName: entry };
         }
+        if (entry && typeof entry.id === 'string' && typeof entry.displayName === 'string') {
+            if (entry.id !== entry.id.toLowerCase()) {
+                migrationOccurred = true;
+                return { id: entry.id.toLowerCase(), displayName: entry.displayName };
+            }
+            return entry;
+        }
+        migrationOccurred = true;
+        return null;
+    }).filter(entry => entry !== null);
+
+    if (migrationOccurred) {
+        setStoredData(LS_KNOWN_PLAYERS, processedObjects);
+        knownPlayerObjects = processedObjects;
+    } else {
+        knownPlayerObjects = processedObjects;
+    }
+
+    knownPlayerObjects.sort((a,b) => a.displayName.localeCompare(b.displayName));
+
+    knownPlayersList.innerHTML = knownPlayerObjects.length === 0 ? '<p class="text-sm text-muted">No players saved yet.</p>' : '';
+
+    knownPlayerObjects.forEach(playerObj => {
+        const entryDiv = document.createElement('div');
+        // Classes for compact "chip" layout (should match step 1 of previous plan)
+        entryDiv.className = 'known-player-entry inline-flex items-center mb-1 mr-2 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded-md shadow-sm';
+
+        const selectBtn = document.createElement('button');
+        // Classes for compact button, text-left. CSS handles text-transform. (should match step 1 of previous plan)
+        selectBtn.className = 'btn btn-secondary text-xs py-0 px-1 known-player-select-btn text-left';
+        selectBtn.textContent = playerObj.displayName;
+        selectBtn.addEventListener('click', () => addKnownPlayerToNewGameSetup(playerObj.displayName));
+
+        const deleteBtn = document.createElement('button');
+        // Classes for compact delete button (should match step 1 of previous plan)
+        deleteBtn.className = 'btn btn-text-danger text-xs py-0 px-1 known-player-delete-btn flex-shrink-0 ml-1';
+        deleteBtn.textContent = 'X';
+        deleteBtn.setAttribute('data-player-id', playerObj.id);
+        deleteBtn.addEventListener('click', () => handleDeleteKnownPlayer(playerObj.id));
+
+        entryDiv.appendChild(selectBtn);
+        entryDiv.appendChild(deleteBtn);
+        knownPlayersList.appendChild(entryDiv);
+    });
+}
         function addKnownPlayerToStorage(name) {
             let known = getStoredData(LS_KNOWN_PLAYERS) || [];
             if (!known.includes(name)) { known.push(name); setStoredData(LS_KNOWN_PLAYERS, known.sort()); loadKnownPlayersDisplay(); }
@@ -318,15 +376,21 @@
             playerNameInput.focus();
         }
         function renderNewGameSetupPlayersList() {
-            playerSetupList.innerHTML = playersForNewGameSetup.length === 0 ? '<p class="text-sm text-muted">Add players for new game.</p>' : '';
-            playersForNewGameSetup.forEach((player) => {
-                const div = document.createElement('div');
-                div.className = 'flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded-md shadow-sm';
-                div.innerHTML = `<span class="text-gray-700 dark:text-gray-200">${player.name}</span><button class="btn btn-text-danger text-xs font-semibold" data-id="${player.id}">REMOVE</button>`;
-                div.querySelector('button').addEventListener('click', (e) => removePlayerFromNewGameSetup(e.target.dataset.id));
-                playerSetupList.appendChild(div);
-            });
-        }
+    playerSetupList.innerHTML = playersForNewGameSetup.length === 0 ? '<p class="text-sm text-muted">Add players for new game.</p>' : '';
+    playersForNewGameSetup.forEach((player) => {
+        const div = document.createElement('div');
+        // Apply compact "chip" styling classes to the wrapper div
+        div.className = 'player-setup-entry inline-flex items-center mb-1 mr-2 px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded-md shadow-sm';
+
+        // Apply compact styling to inner elements
+        div.innerHTML =
+            `<span class="text-gray-700 dark:text-gray-200 text-sm">${player.name}</span>` +
+            `<button class="btn btn-text-danger text-xs py-0 px-1 font-semibold ml-2" data-id="${player.id}">REMOVE</button>`;
+
+        div.querySelector('button').addEventListener('click', (e) => removePlayerFromNewGameSetup(e.target.dataset.id));
+        playerSetupList.appendChild(div);
+    });
+}
         function removePlayerFromNewGameSetup(playerId) {
             playersForNewGameSetup = playersForNewGameSetup.filter(p => p.id !== playerId);
             renderNewGameSetupPlayersList();
@@ -354,6 +418,53 @@
                 savedGamesContainer.appendChild(div);
             });
         }
+
+function handleDeleteKnownPlayer(playerId) {
+    // Find the player object to get the displayName for the confirmation message
+    const knownPlayersForConfirmation = getStoredData(LS_KNOWN_PLAYERS) || [];
+    const playerObjectToDelete = knownPlayersForConfirmation.find(p => p.id === playerId);
+
+    if (!playerObjectToDelete) {
+        console.warn("Attempted to delete known player, but ID not found for confirmation:", playerId);
+        loadKnownPlayersDisplay(); // Refresh display in case of inconsistency
+        return;
+    }
+
+    if (confirm(`Are you sure you want to remove "${playerObjectToDelete.displayName}" from the known players list?`)) {
+        let knownPlayersObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
+
+        // Robust processing of the list before filtering
+        knownPlayersObjects = knownPlayersObjects.map(entry => {
+            if (typeof entry === 'string') { return { id: entry.toLowerCase(), displayName: entry }; }
+            if (entry && typeof entry.id === 'string' && typeof entry.displayName === 'string') {
+                return { id: entry.id.toLowerCase(), displayName: entry.displayName };
+            }
+            return null;
+        }).filter(entry => entry !== null);
+
+        const initialKnownLength = knownPlayersObjects.length;
+        const updatedKnownPlayers = knownPlayersObjects.filter(pObj => pObj.id !== playerId);
+
+        if (updatedKnownPlayers.length < initialKnownLength) {
+            setStoredData(LS_KNOWN_PLAYERS, updatedKnownPlayers);
+        } else {
+            console.warn("Known player ID not found for deletion in main list processing:", playerId);
+        }
+
+        // Also remove from playersForNewGameSetup if present
+        const initialSetupLength = playersForNewGameSetup.length;
+        playersForNewGameSetup = playersForNewGameSetup.filter(
+            playerInSetup => playerInSetup.name.toLowerCase() !== playerId
+        );
+
+        if (playersForNewGameSetup.length < initialSetupLength) {
+            renderNewGameSetupPlayersList(); // Refresh the setup list display
+        }
+
+        loadKnownPlayersDisplay(); // Refresh the known players list display
+    }
+}
+
         function handleDeleteGame(gameId) {
             if (!confirm("Delete this saved game?")) return;
             let savedGames = getStoredData(LS_SAVED_GAMES_LIST) || [];
@@ -511,7 +622,7 @@
                     if(currentGameNameDisplay) currentGameNameDisplay.textContent = currentGame.name || "Scoreboard";
                     if(currentRoundDisplay) currentRoundDisplay.textContent = currentGame.currentRound;
                     if(gameTargetScoreDisplay) gameTargetScoreDisplay.textContent = currentGame.gameTargetScore;
-                    if(gameOpenDropDisplay) gameOpenDropDisplay.textContent = currentGame.openDropScore;
+                    if(gameOpenDropScoreDisplay) gameOpenDropDisplay.textContent = currentGame.openDropScore;
                     if(gameMiddleDropDisplay) gameMiddleDropDisplay.textContent = currentGame.middleDropScore;
                     if(gameFullCountDisplay) gameFullCountDisplay.textContent = currentGame.fullCountScore;
                     if(gameStatusMessage) gameStatusMessage.textContent = '';
