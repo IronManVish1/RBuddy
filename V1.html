@@ -138,6 +138,22 @@
             transform: translateX(-20px) !important; /* Slide out to left */
             transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
         }
+
+        @keyframes highlight-new-row {
+            0% {
+                background-color: rgba(255, 255, 0, 0.5); /* Light yellow, semi-transparent */
+            }
+            70% { /* Hold highlight for a bit */
+                background-color: rgba(255, 255, 0, 0.3);
+            }
+            100% {
+                background-color: transparent; /* Fade to transparent */
+            }
+        }
+
+        .new-score-row-highlight > td { /* Apply to TDs for better background control */
+            animation: highlight-new-row 1.5s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -558,6 +574,12 @@ function transitionToSetupView() {
             if (!currentGame || currentGame.players.length === 0) {
                 if(roundScoresTableContainer) roundScoresTableContainer.innerHTML = '<p class="text-sm text-muted">No rounds played yet or no players.</p>'; return;
             }
+
+            const highlightNewRound = currentGame.justSubmittedNewRound;
+            if (highlightNewRound) {
+                currentGame.justSubmittedNewRound = false; // Reset flag
+            }
+
             let tableHTML = '<table class="min-w-full divide-y shadow-sm rounded-lg overflow-hidden"><thead><tr>';
             tableHTML += '<th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Round</th>';
             currentGame.players.forEach(player => {
@@ -566,7 +588,11 @@ function transitionToSetupView() {
             });
             tableHTML += '</tr></thead><tbody class="divide-y">';
             for (let i = 0; i < currentGame.currentRound; i++) {
-                tableHTML += `<tr><td class="px-4 py-3 whitespace-nowrap text-sm font-medium">Round ${i + 1}</td>`;
+                let trAttributes = "";
+                if (highlightNewRound && i === (currentGame.currentRound - 1)) {
+                    trAttributes = " class='new-score-row-highlight'";
+                }
+                tableHTML += `<tr${trAttributes}><td class="px-4 py-3 whitespace-nowrap text-sm font-medium">Round ${i + 1}</td>`;
                 currentGame.players.forEach(player => {
                     const scoreItem = player.scores[i];
                     let scoreDisplay = '-';
@@ -798,6 +824,7 @@ function transitionToSetupView() {
             if (!isEditingLastRoundGlobal) {
                 currentGame.currentRound++;
                 advanceDealer();
+                currentGame.justSubmittedNewRound = true;
             }
 
             currentRoundDisplay.textContent = currentGame.currentRound;
