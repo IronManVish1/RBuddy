@@ -47,7 +47,11 @@
         body.dark-theme input[type="text"], body.dark-theme input[type="number"] { background-color: var(--input-bg-dark); border: 1px solid var(--input-border-dark); color: var(--input-text-dark); }
         body.light-theme input[type="text"]:focus, body.light-theme input[type="number"]:focus { border-color: var(--btn-primary-bg-light); box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2); }
         body.dark-theme input[type="text"]:focus, body.dark-theme input[type="number"]:focus { border-color: var(--btn-primary-bg-dark); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3); }
-        .btn { border-radius: 9999px; padding: 0.65rem 1.25rem; font-weight: 500; transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; border: none; display: inline-flex; align-items: center; justify-content: center; }
+        .btn { border-radius: 9999px; padding: 0.65rem 1.25rem; font-weight: 500; transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.1s ease-out, filter 0.1s ease-out; text-transform: uppercase; letter-spacing: 0.05em; border: none; display: inline-flex; align-items: center; justify-content: center; }
+        .btn:active {
+            transform: scale(0.96);
+            filter: brightness(0.9);
+        }
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; } 
         .btn-primary { color: white; }
         body.light-theme .btn-primary { background-color: var(--btn-primary-bg-light); }
