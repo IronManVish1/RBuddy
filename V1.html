@@ -1035,16 +1035,20 @@ function transitionToSetupView() {
             tableHTML += '</tbody><tfoot><tr class="border-t-2 dark:border-gray-600">';
             tableHTML += '<td class="px-4 py-3 text-sm font-semibold">Current Status</td>';
             currentGame.players.forEach(player => {
-                let statusText = `${player.totalScore}`;
-                 if (player.reEntryCount > 0) {
-                    statusText += ` (Re-entered ${player.reEntryCount} time${player.reEntryCount > 1 ? 's' : ''})`;
-                }
+                let statusText = `${player.totalScore}`; // Base score
+
                 if (player.eliminated) {
                     statusText += ' (Out)';
+                    // Only show re-entry count if they are currently eliminated AND have re-entered
+                    if (player.reEntryCount > 0) {
+                       statusText += ` (Re-entered ${player.reEntryCount} time${player.reEntryCount > 1 ? 's' : ''})`;
+                    }
+                    // Show re-enter button if they are eliminated AND can re-enter this round
                     if (player.canReEnterCurrentRound) { 
                         statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
                     }
                 }
+                // If player is not eliminated, no "(Out)" text, no re-entry count text, and no re-enter button will be added here.
                 let tdClasses = "px-4 py-3 text-sm font-semibold"; // Original classes for the cell
 
                 if (player.justEliminated) {
