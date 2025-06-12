@@ -275,6 +275,21 @@ body.dark-theme .winner-highlight-cell { /* Applied to <td> */
 .animate-fall-1 { animation: fall-and-fade 3s linear forwards; }
 .animate-fall-2 { animation: fall-and-fade 4s linear forwards; }
 .animate-fall-3 { animation: fall-and-fade 5s linear forwards; }
+
+@media (max-width: 480px) {
+    .score-option-btn {
+        padding: 0.2rem 0.2rem !important;   /* Adjusted for slightly more horizontal padding based on typical 'X' character width vs text */
+        font-size: 0.6rem !important;
+        line-height: 0.75rem !important;
+        letter-spacing: -0.5px;
+        min-width: 48px;  /* Approx width for "Mid (40)" with tiny font/padding */
+        word-break: break-word;
+        white-space: normal;
+        text-align: center; /* Center text if it wraps */
+        /* Ensure border is minimal or accounted for if it adds width */
+        border-width: 1px; /* Assuming it has a border, ensure it's minimal */
+    }
+}
     </style>
 </head>
 <body>
@@ -327,7 +342,7 @@ body.dark-theme .winner-highlight-cell { /* Applied to <td> */
             </div>
             <div class="mb-1 text-sm text-muted">Target: <span id="gameTargetScoreDisplay" class="font-semibold"></span></div>
             <div class="mb-6 text-xs text-muted">
-                Drops: Open <span id="gameOpenDropDisplay" class="font-semibold"></span> | Middle <span id="gameMiddleDropDisplay" class="font-semibold"></span> | Full Count <span id="gameFullCountDisplay" class="font-semibold"></span>
+                Drops: Open (OD) <span id="gameOpenDropDisplay" class="font-semibold"></span> | Middle (MD) <span id="gameMiddleDropDisplay" class="font-semibold"></span> | Full Count (FC) <span id="gameFullCountDisplay" class="font-semibold"></span> | Dealer: (D)
             </div>
             <div class="mb-8">
                 <h3 class="text-lg font-semibold mb-3">Round-by-Round Scores & Status</h3>
@@ -391,19 +406,62 @@ body.dark-theme .winner-highlight-cell { /* Applied to <td> */
         }
         function loadTheme() { applyTheme(getStoredData(LS_THEME) || 'light'); }
 
-        function getFormattedEstDate(date = new Date()) { 
-            try {
-                const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/New_York' };
-                let formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
-                if (formattedDate.includes('undefined') || formattedDate.includes('GMT')) { 
-                     options.timeZone = undefined;
-                     formattedDate = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
-                }
-                return formattedDate;
-            } catch (e) { 
-                return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-            }
+function getFormattedEstDate(date = new Date(), includeTime = false) {
+    try {
+        const options = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            timeZone: 'America/New_York' // Attempt EST/EDT first
+        };
+        if (includeTime) {
+            options.hour = '2-digit';
+            options.minute = '2-digit';
+            options.second = '2-digit';
+            options.hour12 = true;
         }
+
+        let formattedDateTime = new Intl.DateTimeFormat('en-US', options).format(date);
+
+        let timeLooksMissing = includeTime && !formattedDateTime.match(/AM|PM/i) && !formattedDateTime.match(/\d{1,2}:\d{2}:\d{2}/);
+        if (formattedDateTime.includes('undefined') || formattedDateTime.includes('GMT') || timeLooksMissing ) {
+             delete options.timeZone; // Fallback to browser's local timezone
+
+             // Ensure time options are present if includeTime is true and they seemed missing
+             if (includeTime) {
+                options.hour = '2-digit';
+                options.minute = '2-digit';
+                options.second = '2-digit';
+                options.hour12 = true;
+             } else { // Ensure time options are absent if includeTime is false for the fallback
+                delete options.hour;
+                delete options.minute;
+                delete options.second;
+                delete options.hour12;
+             }
+             formattedDateTime = new Intl.DateTimeFormat('en-US', options).format(date);
+        }
+        return formattedDateTime;
+    } catch (e) {
+        console.error("Error formatting date:", e);
+        // Basic fallback string
+        let day = String(date.getDate()).padStart(2, '0');
+        let month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+        let year = date.getFullYear();
+        let fallback = `${month}/${day}/${year}`; // MM/DD/YYYY
+
+        if (includeTime) {
+            let hours = date.getHours();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // Hour '0' should be '12'
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            fallback += `, ${hours}:${minutes}:${seconds} ${ampm}`;
+        }
+        return fallback;
+    }
+}
 
         function loadKnownPlayersDisplay() {
     let knownPlayerObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
@@ -641,33 +699,73 @@ function showWinnerCelebrationOverlay() {
             } else if (newName !== null) { alert("Game name cannot be empty.");}
         }
         
-        function generateDefaultGameName(playersList) {
-            const playerNames = playersList.map(p => p.name).slice(0,2).join(' & ');
-            return `Game: ${playerNames} - ${getFormattedEstDate()}`;
-        }
+function generateDefaultGameName(playersList) {
+    const playerNames = (playersList && playersList.length > 0)
+        ? playersList.map(p => p.name).slice(0,2).join(' & ')
+        : "New Game"; // Fallback if playersList is empty or undefined
+    // Call with includeTime = true
+    return `Game: ${playerNames} - ${getFormattedEstDate(new Date(), true)}`;
+}
 
-        function handleStartNewGame() {
-            if (playersForNewGameSetup.length < 2) { alert('Select at least 2 players to start the game.'); return; }
-            currentGame = {
-                id: null, name: generateDefaultGameName(playersForNewGameSetup), 
-                players: JSON.parse(JSON.stringify(playersForNewGameSetup)).map((p, index) => ({
-                    ...p, id: String(p.id).replace(/\./g, '_'), 
-                    scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: index === 0, reEntryCount: 0, reEntryEvents: []
-                })),
-                currentRound: 0,
-                gameTargetScore: parseInt(gameTargetScoreInput.value) || 201,
-                openDropScore: parseInt(openDropScoreInput.value) || 20,
-                middleDropScore: parseInt(middleDropScoreInput.value) || 40,
-                fullCountScore: parseInt(fullCountScoreInput.value) || 80,
-                lastSavedTimestamp: new Date().toISOString(),
-                initialPlayerOrder: playersForNewGameSetup.map(p => String(p.id).replace(/\./g, '_')),
-                roundDealerHistory: [],
-                isComplete: false 
+function handleStartNewGame() {
+    if (playersForNewGameSetup.length < 2) {
+        alert('Select at least 2 players to start the game.');
+        return;
+    }
+
+    // Explicitly clear previous game status message and animation classes
+    if (gameStatusMessage) {
+        gameStatusMessage.textContent = '';
+        gameStatusMessage.classList.remove('winner-message-animate');
+    }
+    // Clean animation classes from sections to prevent stale animation states
+    if (gameSection) {
+        gameSection.classList.remove('section-is-entering', 'section-animate-initial', 'section-is-exiting', 'hidden');
+    }
+    if (setupSection) {
+        setupSection.classList.remove('section-is-entering', 'section-animate-initial', 'section-is-exiting', 'hidden');
+    }
+
+    // Create a pristine currentGame object
+    currentGame = {
+        id: null, // Will be set on first auto-save
+        name: generateDefaultGameName(playersForNewGameSetup), // Name will be made more unique in a later step
+        players: playersForNewGameSetup.map((playerSetupObj, index) => {
+            // playerSetupObj is from playersForNewGameSetup, e.g., {id: 'someOriginalId', name: 'PlayerName'}
+            // We create a new, clean player object for the game state.
+            return {
+                id: String(playerSetupObj.id).replace(/\./g, '_'), // Use and sanitize ID from setup
+                name: playerSetupObj.name, // Use name from setup
+                scores: [],
+                totalScore: 0,
+                eliminated: false,
+                canReEnterCurrentRound: false,
+                isDealer: index === 0,
+                reEntryCount: 0,
+                reEntryEvents: [],
+                isWinner: false,      // Explicitly reset
+                justEliminated: false // Explicitly reset
             };
-            playersForNewGameSetup = []; renderNewGameSetupPlayersList();
-            transitionToGameView();
-            autoSaveGameProgress(); 
-        }
+        }),
+        currentRound: 0,
+        gameTargetScore: parseInt(gameTargetScoreInput.value) || 201,
+        openDropScore: parseInt(openDropScoreInput.value) || 20,
+        middleDropScore: parseInt(middleDropScoreInput.value) || 40,
+        fullCountScore: parseInt(fullCountScoreInput.value) || 80,
+        lastSavedTimestamp: new Date().toISOString(),
+        initialPlayerOrder: playersForNewGameSetup.map(p => String(p.id).replace(/\./g, '_')),
+        roundDealerHistory: [],
+        isComplete: false,
+        justSubmittedNewRound: false // Explicitly reset
+    };
+
+    playersForNewGameSetup = []; // Clear the setup list array
+    renderNewGameSetupPlayersList(); // Update UI for the now empty setup list
+
+    transitionToGameView();
+
+    autoSaveGameProgress();
+}
 
         function handleLoadGame(gameId) {
             const savedGames = getStoredData(LS_SAVED_GAMES_LIST) || [];
@@ -742,53 +840,78 @@ function showWinnerCelebrationOverlay() {
             showAutoSaveNotification();
         }
         
-        function transitionToGameView() {
-            if (!currentGame) return;
-            console.log("Transitioning to game view...");
+function transitionToGameView() {
+    if (!currentGame) return;
 
-            // 1. Start exiting setupSection
-            if (setupSection) {
-                setupSection.classList.add('section-is-exiting');
+    // Start exiting setupSection
+    if (setupSection) {
+        // Clean up any existing animation classes on setupSection first
+        setupSection.classList.remove('section-is-entering', 'section-animate-initial');
+        setupSection.classList.add('section-is-exiting');
+    }
+
+    // After exit animation, switch visibility and start entering gameSection
+    setTimeout(() => {
+        if (setupSection) {
+            setupSection.classList.add('hidden');
+            setupSection.classList.remove('section-is-exiting');
+        }
+
+        if (gameSection) {
+            // Prepare gameSection for entry animation
+            gameSection.classList.remove('hidden');
+            // Clean up any existing animation classes on gameSection first
+            gameSection.classList.remove('section-is-exiting');
+            gameSection.classList.add('section-animate-initial');
+
+            // Force a reflow to ensure initial state is applied before animation
+            void gameSection.offsetHeight;
+
+            gameSection.classList.add('section-is-entering');
+
+            // Explicitly update all game-specific display elements from currentGame
+            if(appTitle) appTitle.classList.add('navigable');
+
+            if(currentGameNameDisplay) {
+                currentGameNameDisplay.textContent = currentGame.name || "Scoreboard";
+            }
+            if(currentRoundDisplay) {
+                currentRoundDisplay.textContent = currentGame.currentRound;
+            }
+            if(gameTargetScoreDisplay) {
+                gameTargetScoreDisplay.textContent = currentGame.gameTargetScore;
+            }
+            if(gameOpenDropDisplay) {
+                gameOpenDropDisplay.textContent = currentGame.openDropScore;
+            }
+            if(gameMiddleDropDisplay) {
+                gameMiddleDropDisplay.textContent = currentGame.middleDropScore;
+            }
+            if(gameFullCountDisplay) {
+                gameFullCountDisplay.textContent = currentGame.fullCountScore;
             }
 
-            // 2. After exit animation, switch visibility and start entering gameSection
+            // gameStatusMessage is usually set by checkGameEnd (called via renderRoundScoresTable).
+            // If it's a brand new game (round 0, no player has scores), ensure message is clear.
+            // handleStartNewGame also clears it, this is an additional safeguard.
+            let isBrandNewGame = currentGame.currentRound === 0 && currentGame.players.every(p => p.scores.length === 0);
+            if (isBrandNewGame && gameStatusMessage) {
+                 gameStatusMessage.textContent = '';
+                 gameStatusMessage.classList.remove('winner-message-animate'); // Also clear animation
+            }
+
+            renderRoundScoresTable(); // This will build the table based on new currentGame
+
+            // After entry animation, clean up animation classes from gameSection
             setTimeout(() => {
-                if (setupSection) {
-                    setupSection.classList.add('hidden');
-                    setupSection.classList.remove('section-is-exiting'); // Clean up
-                }
-
                 if (gameSection) {
-                    // Prepare gameSection for entry animation
-                    gameSection.classList.remove('hidden');
-                    gameSection.classList.add('section-animate-initial');
-
-                    // Force a reflow
-                    void gameSection.offsetHeight;
-
-                    gameSection.classList.add('section-is-entering');
-
-                    // Original logic to populate game view data:
-                    if(appTitle) appTitle.classList.add('navigable');
-                    if(currentGameNameDisplay) currentGameNameDisplay.textContent = currentGame.name || "Scoreboard";
-                    if(currentRoundDisplay) currentRoundDisplay.textContent = currentGame.currentRound;
-                    if(gameTargetScoreDisplay) gameTargetScoreDisplay.textContent = currentGame.gameTargetScore;
-                    if(gameOpenDropScoreDisplay) gameOpenDropDisplay.textContent = currentGame.openDropScore;
-                    if(gameMiddleDropDisplay) gameMiddleDropDisplay.textContent = currentGame.middleDropScore;
-                    if(gameFullCountDisplay) gameFullCountDisplay.textContent = currentGame.fullCountScore;
-                    if(gameStatusMessage) gameStatusMessage.textContent = '';
-                    renderRoundScoresTable();
-
-                    // 3. After entry animation, clean up animation classes from gameSection
-                    setTimeout(() => {
-                        if (gameSection) {
-                            gameSection.classList.remove('section-is-entering');
-                            gameSection.classList.remove('section-animate-initial');
-                        }
-                    }, 300); // This duration should match the CSS transition duration
+                    gameSection.classList.remove('section-is-entering');
+                    gameSection.classList.remove('section-animate-initial');
                 }
             }, 300); // This duration should match the CSS transition duration
         }
+    }, 300); // This duration should match the CSS transition duration
+}
         
 function transitionToSetupView() {
     console.log("Transitioning to setup view...");
@@ -849,7 +972,7 @@ function transitionToSetupView() {
             let tableHTML = '<table class="min-w-full divide-y shadow-sm rounded-lg overflow-hidden"><thead><tr>';
             tableHTML += '<th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Round</th>';
             currentGame.players.forEach(player => {
-                let dealerMark = player.isDealer ? '<span class="text-xs text-muted">(Dealer)</span>' : '';
+                let dealerMark = player.isDealer ? '<span class="text-xs text-muted">(D)</span>' : '';
                 tableHTML += `<th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">${player.name} ${dealerMark}</th>`;
             });
             tableHTML += '</tr></thead><tbody class="divide-y">';
@@ -865,9 +988,9 @@ function transitionToSetupView() {
                     if (scoreItem !== undefined) {
                         scoreDisplay = `${scoreItem.points}`;
                         if (scoreItem.points === 0) scoreDisplay += " 🎉";
-                        if (scoreItem.type === 'OD') scoreDisplay += " (Open Drop)";
-                        else if (scoreItem.type === 'MD') scoreDisplay += " (Middle Drop)";
-                        else if (scoreItem.type === 'FC') scoreDisplay += " (Full Count)";
+                        if (scoreItem.type === 'OD') scoreDisplay += " (OD)";
+                        else if (scoreItem.type === 'MD') scoreDisplay += " (MD)";
+                        else if (scoreItem.type === 'FC') scoreDisplay += " (FC)";
                     }
                     tableHTML += `<td class="px-4 py-3 whitespace-nowrap text-sm">${scoreDisplay}</td>`;
                 });
@@ -954,7 +1077,7 @@ function transitionToSetupView() {
                 }
                 inputGroup.innerHTML = `
                     <label class="block text-md font-medium mb-2">${player.name} ${dealerMarkForModal}:</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                    <div class="grid grid-cols-4 gap-1 mb-3">
                         <button class="btn score-option-btn" data-score="0" data-type="win">Win (0)</button>
                         <button class="btn score-option-btn" data-score="${currentGame.openDropScore}" data-type="OD">Open (${currentGame.openDropScore})</button>
                         <button class="btn score-option-btn" data-score="${currentGame.middleDropScore}" data-type="MD">Mid (${currentGame.middleDropScore})</button>
@@ -983,142 +1106,221 @@ function transitionToSetupView() {
             if (firstInput) firstInput.focus();
         }
 
-        function handleSubmitScores() {
-            if (!currentGame) return;
-            let allScoresValid = true; let zeroScoreCount = 0; const roundScoresData = [];
-            const roundIndexBeingProcessed = isEditingLastRoundGlobal ? currentGame.currentRound - 1 : currentGame.currentRound;
+function handleSubmitScores() {
+    if (!currentGame) return;
 
-            const playerStatesBeforeThisRound = currentGame.players.map(p => ({
-                id: p.id,
-                wasEliminated: p.eliminated,
-            }));
+    let playersWithErrors = [];
+    let allScoresValid = true;
+    let zeroScoreCount = 0;
+    const roundScoresData = [];
 
-            currentGame.players.forEach(player => {
-                if (!isEditingLastRoundGlobal && player.eliminated) { player.canReEnterCurrentRound = false; return; }
-                const inputElement = document.getElementById(`score-input-${player.id}`);
-                const typeElement = document.getElementById(`score-type-${player.id}`);
-                if (!inputElement) { return; }
-                const scoreValue = inputElement.value.trim();
-                const scoreType = typeElement ? typeElement.value : 'manual';
-                if (scoreValue === '') { alert(`Enter score for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
-                const points = parseInt(scoreValue);
-                if (isNaN(points)) { alert(`Invalid score for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
+    const roundIndexBeingProcessed = isEditingLastRoundGlobal ? currentGame.currentRound - 1 : currentGame.currentRound;
 
-                if (points !== 0 && points < 2) {
-                    alert(`Minimum score for a player (if not the winner) is 2. ${player.name} entered ${points}.`);
-                    inputElement.focus(); allScoresValid = false; return;
-                }
-                if (points > currentGame.fullCountScore) { alert(`Max score for a round is ${currentGame.fullCountScore} for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
-                if (points === 0) zeroScoreCount++;
-                roundScoresData.push({ playerId: player.id, points: points, type: scoreType });
+    const playerStatesBeforeThisRound = currentGame.players.map(p => ({
+        id: p.id,
+        wasEliminated: p.eliminated,
+    }));
+
+    currentGame.players.forEach(player => {
+        if (!isEditingLastRoundGlobal && player.eliminated) {
+            // For new rounds, if player already eliminated, don't process score input.
+            // Their canReEnterCurrentRound was already set to false at start of this loop in earlier versions,
+            // ensure this state is handled (e.g. they aren't in playersWithErrors).
+            // This 'return' means they are skipped for score validation for this new round.
+            return;
+        }
+
+        const inputElement = document.getElementById(`score-input-${player.id}`);
+        const typeElement = document.getElementById(`score-type-${player.id}`);
+
+        // If editing, an eliminated player might not have an inputElement if openScoreModal skipped them.
+        // We should use their existing score for the round being edited if it exists.
+        if (!inputElement && isEditingLastRoundGlobal && player.scores && player.scores[roundIndexBeingProcessed] !== undefined) {
+            const existingScoreData = player.scores[roundIndexBeingProcessed];
+            if (existingScoreData.points === 0) zeroScoreCount++;
+            roundScoresData.push({
+                playerId: player.id,
+                points: existingScoreData.points,
+                type: existingScoreData.type
             });
+            return; // Move to next player
+        }
 
-            if (!allScoresValid) return;
-            if (zeroScoreCount !== 1) { alert("Exactly one player must have 0 points for winning the round."); return; }
+        // If inputElement is still not found for a player who should have one (active, or editing their score)
+        // This implies an issue with openScoreModal or player state if they should be scorable.
+        // For now, if no input element and no existing score to use (above), it will be caught by blank score check.
+        // Or, more directly, consider it an error if inputElement is null for someone not covered by above.
+        if (!inputElement) {
+            // This case needs careful consideration: if a player is part of the round but no input field for them.
+            // This might happen if an eliminated player is part of an *edited* round but openScoreModal didn't create inputs for them.
+            // The current openScoreModal *does* create inputs for all players if isEditing.
+            // So, if !inputElement here, it's likely a player who shouldn't be scored or an error.
+            // Let's assume for now that players who should be scored will have an inputElement.
+            // If not, the scoreValue will be effectively blank.
+        }
 
-            if (isEditingLastRoundGlobal) {
-                roundScoresData.forEach(rs => {
-                    const player = currentGame.players.find(p => p.id === rs.playerId);
-                    if (player) player.scores[roundIndexBeingProcessed] = { points: rs.points, type: rs.type };
-                });
-            } else {
-                if (!currentGame.roundDealerHistory) currentGame.roundDealerHistory = [];
-                const currentDealer = currentGame.players.find(p => p.isDealer);
-                currentGame.roundDealerHistory[currentGame.currentRound] = currentDealer ? currentDealer.id : null;
-                roundScoresData.forEach(rs => {
-                    const player = currentGame.players.find(p => p.id === rs.playerId);
-                    if (player) player.scores.push({ points: rs.points, type: rs.type });
-                });
+        const scoreValue = inputElement ? inputElement.value.trim() : ""; // Default to blank if no input
+        const scoreType = typeElement ? typeElement.value : 'manual';
+
+        if (scoreValue === '') {
+            // Only add error if player is not eliminated (or if editing, consider all players in round)
+            // The initial check `!isEditingLastRoundGlobal && player.eliminated` handles skipping already eliminated players for new rounds.
+            // So, if we reach here, the player is either active, or we are editing.
+            playersWithErrors.push({ name: player.name, issue: "score is blank" });
+            allScoresValid = false;
+            return;
+        }
+        const points = parseInt(scoreValue);
+        if (isNaN(points)) {
+            playersWithErrors.push({ name: player.name, issue: "score is not a valid number" });
+            allScoresValid = false;
+            return;
+        }
+
+        if (points !== 0 && points < 2) {
+            playersWithErrors.push({ name: player.name, issue: `score of ${points} is too low (min 2, or 0 for winner)`});
+            allScoresValid = false;
+            return;
+        }
+        if (points > currentGame.fullCountScore) {
+            playersWithErrors.push({ name: player.name, issue: `score of ${points} is too high (max ${currentGame.fullCountScore})`});
+            allScoresValid = false;
+            return;
+        }
+
+        if (points === 0) zeroScoreCount++;
+        roundScoresData.push({ playerId: player.id, points: points, type: scoreType });
+    });
+
+    if (!allScoresValid) {
+        let errorMessage = "Please correct the following score entries:\n";
+        playersWithErrors.forEach(err => {
+            errorMessage += `\n- ${err.name}: ${err.issue}.`;
+        });
+        errorMessage += `\n\nScores must be numbers. Minimum score is 2 (unless 0 for the round winner). Maximum score is ${currentGame.fullCountScore}.`;
+        alert(errorMessage);
+
+        if (playersWithErrors.length > 0) {
+           const firstPlayerNameWithError = playersWithErrors[0].name;
+           const firstPlayerWithError = currentGame.players.find(p => p.name === firstPlayerNameWithError);
+           if (firstPlayerWithError) {
+               const M_inputElement = document.getElementById(`score-input-${firstPlayerWithError.id}`);
+                if(M_inputElement) M_inputElement.focus();
+           }
+        }
+        return;
+    }
+
+    if (zeroScoreCount !== 1) {
+        alert("Exactly one player must have 0 points for winning the round.");
+        return;
+    }
+
+    // Apply scores (new or edited)
+    if (isEditingLastRoundGlobal) {
+        roundScoresData.forEach(rs => {
+            const player = currentGame.players.find(p => p.id === rs.playerId);
+            if (player && player.scores && player.scores[roundIndexBeingProcessed] !== undefined) {
+                player.scores[roundIndexBeingProcessed] = { points: rs.points, type: rs.type };
             }
+            // Not handling case where player has no score for roundIndexBeingProcessed during edit,
+            // as openScoreModal should provide inputs for all players involved in an edited round.
+        });
+    } else { // New round
+        if (!currentGame.roundDealerHistory) currentGame.roundDealerHistory = [];
+        const currentDealer = currentGame.players.find(p => p.isDealer);
+        currentGame.roundDealerHistory[currentGame.currentRound] = currentDealer ? currentDealer.id : null;
+        roundScoresData.forEach(rs => {
+            const player = currentGame.players.find(p => p.id === rs.playerId);
+            if (player) player.scores.push({ points: rs.points, type: rs.type });
+        });
+    }
 
-            // Create a temporary list of players with their provisional scores after this round
-            const provisionalPlayerStates = currentGame.players.map(p => {
-                const playerOriginalState = playerStatesBeforeThisRound.find(ps => ps.id === p.id);
-                let provisionalTotalScore;
+    // Recalculate totals and statuses (Copied from a previously verified version)
+    const provisionalPlayerStates = currentGame.players.map(p => {
+        const playerOriginalState = playerStatesBeforeThisRound.find(ps => ps.id === p.id);
+        let provisionalTotalScore;
+        let baseScore = 0;
+        let sumFromRoundIndex = 0;
+        if (p.reEntryEvents && p.reEntryEvents.length > 0) {
+            const lastReEntry = p.reEntryEvents[p.reEntryEvents.length - 1];
+            baseScore = lastReEntry.newBaselineScore;
+            sumFromRoundIndex = lastReEntry.roundIndex;
+        }
+        let sumOfScoresAfterLastReEntry = 0;
+        for (let i = sumFromRoundIndex; i < p.scores.length; i++) {
+            if (p.scores[i] && typeof p.scores[i].points === 'number') {
+                 sumOfScoresAfterLastReEntry += p.scores[i].points;
+            }
+        }
+        provisionalTotalScore = baseScore + sumOfScoresAfterLastReEntry;
+        let provisionalEliminated = provisionalTotalScore >= currentGame.gameTargetScore;
+        if(provisionalEliminated) provisionalTotalScore = currentGame.gameTargetScore;
+        return {
+            id: p.id, name: p.name, provisionalTotalScore, provisionalEliminated,
+            wasPreviouslyEliminated: playerOriginalState ? playerOriginalState.wasEliminated : false
+        };
+    });
 
-                let baseScore = 0;
-                let sumFromRoundIndex = 0;
-                if (p.reEntryEvents && p.reEntryEvents.length > 0) {
-                    const lastReEntry = p.reEntryEvents[p.reEntryEvents.length - 1];
-                    baseScore = lastReEntry.newBaselineScore;
-                    sumFromRoundIndex = lastReEntry.roundIndex;
-                }
+    let preventReEntryDueToGameEnd = false;
+    const activeProvisionalPlayers = provisionalPlayerStates.filter(p => !p.provisionalEliminated);
+    if (currentGame.players.length >= 2 && activeProvisionalPlayers.length === 1) {
+        preventReEntryDueToGameEnd = true;
+    }
 
-                let sumOfScoresAfterLastReEntry = 0;
-                for (let i = sumFromRoundIndex; i < p.scores.length; i++) {
-                    if (p.scores[i] && typeof p.scores[i].points === 'number') { sumOfScoresAfterLastReEntry += p.scores[i].points; }
-                }
-                provisionalTotalScore = baseScore + sumOfScoresAfterLastReEntry;
-
-                let provisionalEliminated = provisionalTotalScore >= currentGame.gameTargetScore;
-                if(provisionalEliminated) provisionalTotalScore = currentGame.gameTargetScore;
-
-                return {
-                    id: p.id,
-                    name: p.name,
-                    provisionalTotalScore,
-                    provisionalEliminated,
-                    // wasPreviouslyEliminated refers to their state *before this specific round's scores/edits* are factored in.
-                    wasPreviouslyEliminated: playerOriginalState ? playerOriginalState.wasEliminated : false
-                };
-            });
-
-
-            // Final update of player states and re-entry eligibility based on provisional states
-            currentGame.players.forEach(player => {
-                const provisionalState = provisionalPlayerStates.find(p => p.id === player.id);
-                if (!provisionalState) return; // Should not happen
-
-                player.totalScore = provisionalState.provisionalTotalScore;
-                player.eliminated = provisionalState.provisionalEliminated;
-
-                // Initialize/reset justEliminated flag for all players each time scores are processed
-                player.justEliminated = false;
-
-                // Check if this player was newly eliminated in this round/edit
-                // provisionalState.wasPreviouslyEliminated should be correctly set from the provisionalPlayerStates map
-                if (player.eliminated && provisionalState && !provisionalState.wasPreviouslyEliminated) {
-                    player.justEliminated = true;
-                }
-
-                player.canReEnterCurrentRound = false;
-                if (player.eliminated && !provisionalState.wasPreviouslyEliminated) {
-                    if (currentGame.players.length > 2) {
-                        const otherActivePlayersSafeProvisional = provisionalPlayerStates.filter(p_check =>
-                            p_check.id !== player.id && 
-                            !p_check.provisionalEliminated &&
-                            p_check.provisionalTotalScore < currentGame.gameTargetScore
-                        );
-                        if (otherActivePlayersSafeProvisional.length >= 1) {
-                            let highestScoreOfAllOthersForReEntry = 0;
-                            const scoresOfAllOtherPlayers = provisionalPlayerStates
-                                .filter(p_check => p_check.id !== player.id)
-                                .map(p_check => p_check.provisionalTotalScore);
-                            if (scoresOfAllOtherPlayers.length > 0) {
-                                highestScoreOfAllOtherPlayersForReEntry = Math.max(0, ...scoresOfAllOtherPlayers);
-                            }
-                            const potentialReEntryScore = highestScoreOfAllOtherPlayersForReEntry + 1;
-                            if (potentialReEntryScore < currentGame.gameTargetScore) {
-                                player.canReEnterCurrentRound = true;
-                            }
+    currentGame.players.forEach(player => {
+        const provisionalState = provisionalPlayerStates.find(p => p.id === player.id);
+        if (!provisionalState) return;
+        player.totalScore = provisionalState.provisionalTotalScore;
+        player.eliminated = provisionalState.provisionalEliminated;
+        player.justEliminated = false;
+        if (player.eliminated && provisionalState && !provisionalState.wasPreviouslyEliminated) {
+            player.justEliminated = true;
+        }
+        player.canReEnterCurrentRound = false;
+        if (preventReEntryDueToGameEnd) {
+            // No re-entry if game provisionally ends
+        } else {
+            let conditionForReEntryCheck = false;
+            if (isEditingLastRoundGlobal) {
+                conditionForReEntryCheck = player.eliminated;
+            } else {
+                conditionForReEntryCheck = player.eliminated && !provisionalState.wasPreviouslyEliminated;
+            }
+            if (conditionForReEntryCheck) {
+                if (currentGame.players.length > 2) {
+                    const scoresOfEligibleOthersForReEntry = provisionalPlayerStates
+                        .filter(p_check => p_check.id !== player.id && p_check.provisionalTotalScore < currentGame.gameTargetScore)
+                        .map(p_check => p_check.provisionalTotalScore);
+                    let highestScoreOfEligibleOthers = 0;
+                    if (scoresOfEligibleOthersForReEntry.length > 0) {
+                        highestScoreOfEligibleOthers = Math.max(0, ...scoresOfEligibleOthersForReEntry);
+                    }
+                    const potentialReEntryScore = highestScoreOfEligibleOthers + 1;
+                    if (potentialReEntryScore < currentGame.gameTargetScore) {
+                        const otherActiveProvPlayers = provisionalPlayerStates.filter(p_check =>
+                            p_check.id !== player.id && !p_check.provisionalEliminated);
+                        if (otherActiveProvPlayers.length >= 1) {
+                            player.canReEnterCurrentRound = true;
                         }
                     }
                 }
-            });
-
-
-            if (!isEditingLastRoundGlobal) {
-                currentGame.currentRound++;
-                advanceDealer();
-                currentGame.justSubmittedNewRound = true;
             }
-
-            currentRoundDisplay.textContent = currentGame.currentRound;
-            renderRoundScoresTable();
-            scoreModal.classList.remove('active');
-            isEditingLastRoundGlobal = false;
-            autoSaveGameProgress();
         }
+    });
+
+    if (!isEditingLastRoundGlobal) {
+        currentGame.currentRound++;
+        advanceDealer();
+        currentGame.justSubmittedNewRound = true;
+    }
+
+    currentRoundDisplay.textContent = currentGame.currentRound;
+    renderRoundScoresTable();
+    scoreModal.classList.remove('active');
+    isEditingLastRoundGlobal = false;
+    autoSaveGameProgress();
+}
         
         function advanceDealer() {
             if (!currentGame || currentGame.players.length === 0) return;
