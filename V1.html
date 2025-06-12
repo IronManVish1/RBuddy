@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummy Score Keeper - V10.27 Fixed</title>
+    <title>Rummy Buddy</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -290,12 +290,45 @@ body.dark-theme .winner-highlight-cell { /* Applied to <td> */
         border-width: 1px; /* Assuming it has a border, ensure it's minimal */
     }
 }
+
+     .logo-icon { /* This is the span wrapping the SVG */
+        line-height: 1em; /* Helps with vertical alignment if SVG is display:inline-block */
+     }
+     .logo-icon svg {
+         display: inline-block; /* Ensure it behaves well with text */
+         width: 1em; /* Scale with the font size of the parent h1 */
+         height: 1em;
+         margin-left: 0.2em; /* Small gap */
+         margin-right: 0.2em; /* Small gap */
+         vertical-align: -0.12em; /* Adjust to align SVG baseline with text baseline */
+         /* transform: translateY(0.05em); */ /* Using vertical-align instead */
+     }
+
+     /* Footer Styling */
+     body.light-theme #appFooter {
+         border-color: var(--border-light);
+         color: var(--text-secondary-light);
+     }
+
+     body.dark-theme #appFooter {
+         border-color: var(--border-dark);
+         color: var(--text-secondary-dark);
+     }
     </style>
 </head>
 <body>
     <div class="app-container w-full max-w-4xl mx-auto p-4 md:p-8">
         <header class="mb-10 flex justify-between items-center">
-            <h1 id="appTitle" class="text-3xl md:text-4xl font-bold">Rummy Score Keeper</h1>
+            <h1 id="appTitle" class="text-3xl md:text-4xl font-bold flex items-center justify-center">
+                <span>Rummy</span>
+                <span class="logo-icon inline-block">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <path d="M 50,95 C 20,65 0,45 0,25 C 0,5 20,0 50,25 C 80,0 100,5 100,25 C 100,45 80,65 50,95" fill="currentColor"/>
+                        <text x="50" y="65" font-family="sans-serif" font-weight="700" font-size="50" fill="white" text-anchor="middle">13</text>
+                    </svg>
+                </span>
+                <span>Buddy</span>
+            </h1>
             <div id="themeToggle" title="Toggle Theme"></div>
         </header>
 
@@ -368,6 +401,9 @@ body.dark-theme .winner-highlight-cell { /* Applied to <td> */
         </div>
     </div>
 
+    <footer id="appFooter" class="mt-12 pt-6 pb-2 text-center border-t">
+        <p class="text-sm">Developed by "Your Vish"</p>
+    </footer>
     <script>
         // DOM Elements - Declared globally, assigned in initializeApp
         let appTitle, setupSection, gameSection, playerNameInput, addPlayerButton, knownPlayersList, playerSetupList,
