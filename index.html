@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rummy Score Keeper - V10.27 Fixed</title>
+    <title>Rummy Buddy</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -44,45 +44,14 @@
         body.dark-theme ::-webkit-scrollbar-thumb:hover { background: #718096; }
         input[type="text"], input[type="number"] { border-radius: 9999px; padding: 0.65rem 1rem; transition: background-color 0.3s, border-color 0.3s, color 0.3s; width: 100%; }
         body.light-theme input[type="text"], body.light-theme input[type="number"] { background-color: var(--input-bg-light); border: 1px solid var(--input-border-light); color: var(--input-text-light); }
-        /* Style for Known Player buttons to not be all uppercase */
-        #knownPlayersList button.btn-secondary {
-            text-transform: none;
-        }
-        /* Ensure delete button 'X' in known player list is visible and styled correctly */
-        #knownPlayersList .known-player-entry .known-player-delete-btn {
-            display: inline-flex !important; /* Force display */
-            visibility: visible !important;   /* Force visibility */
-            color: var(--text-secondary-light) !important; /* Default light theme color for visibility */
-            font-size: 0.75rem !important;    /* text-xs */
-            line-height: 1rem !important;     /* Ensure line height for text-xs */
-            padding: 0px 0.25rem !important;  /* py-0 px-1 */
-            text-transform: none !important;  /* Prevent uppercasing of 'X' */
-        }
-        body.dark-theme #knownPlayersList .known-player-entry .known-player-delete-btn {
-            color: var(--text-secondary-dark) !important;
-        }
-        body.light-theme #knownPlayersList .known-player-entry .known-player-delete-btn.btn-text-danger {
-            color: #d32f2f !important; /* Original light theme danger color */
-        }
-        body.dark-theme #knownPlayersList .known-player-entry .known-player-delete-btn.btn-text-danger {
-            color: #f87171 !important; /* Original dark theme danger color */
-        }
-
-        /* Updated rule for .known-player-delete-btn */
-        .known-player-delete-btn {
-            display: inline-flex !important;
-            visibility: visible !important;
-            font-size: 0.75rem !important;    /* text-xs */
-            line-height: 1rem !important;     /* Ensure line height for text-xs */
-            padding: 0.1rem 0.25rem !important; /* Slightly more robust padding than py-0 px-1 */
-            text-transform: none !important;  /* Ensure 'X' is not uppercased */
-            /* Color will be handled by .btn-text-danger or more specific theme rules */
-        }
-
         body.dark-theme input[type="text"], body.dark-theme input[type="number"] { background-color: var(--input-bg-dark); border: 1px solid var(--input-border-dark); color: var(--input-text-dark); }
         body.light-theme input[type="text"]:focus, body.light-theme input[type="number"]:focus { border-color: var(--btn-primary-bg-light); box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2); }
         body.dark-theme input[type="text"]:focus, body.dark-theme input[type="number"]:focus { border-color: var(--btn-primary-bg-dark); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3); }
-        .btn { border-radius: 9999px; padding: 0.65rem 1.25rem; font-weight: 500; transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; border: none; display: inline-flex; align-items: center; justify-content: center; }
+        .btn { border-radius: 9999px; padding: 0.65rem 1.25rem; font-weight: 500; transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.1s ease-out, filter 0.1s ease-out; text-transform: uppercase; letter-spacing: 0.05em; border: none; display: inline-flex; align-items: center; justify-content: center; }
+        .btn:active {
+            transform: scale(0.96);
+            filter: brightness(0.9);
+        }
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; } 
         .btn-primary { color: white; }
         body.light-theme .btn-primary { background-color: var(--btn-primary-bg-light); }
@@ -112,6 +81,20 @@
         body.light-theme .btn-text-blue { color: var(--link-light); }
         body.dark-theme .btn-text-blue { color: var(--link-dark); }
         .btn-text-blue:hover { background-color: rgba(25, 118, 210, 0.1); }
+
+        #knownPlayersList button.btn-secondary {
+            text-transform: none;
+        }
+
+        .known-player-delete-btn {
+            display: inline-flex !important;
+            visibility: visible !important;
+            text-transform: none !important;
+            font-size: 0.75rem !important;    /* text-xs */
+            line-height: 1rem !important;     /* lineheight for text-xs */
+            padding: 0.1rem 0.25rem !important; /* minimal effective padding */
+            /* Color is intended to be handled by .btn-text-danger and its theme overrides */
+        }
         .score-option-btn { font-size: 0.75rem; padding: 0.35rem 0.6rem; border: 1px solid; border-radius: 9999px; }
         body.light-theme .score-option-btn { background-color: #e0e0e0; color: #374151; border-color: #bdbdbd; }
         body.dark-theme .score-option-btn { background-color: #4b5563; color: #e5e7eb; border-color: #6b7280; }
@@ -153,12 +136,199 @@
         #autoSaveNotification.show { opacity: 1; }
         .loader { border: 3px solid #ecf0f1; border-top: 3px solid #5dade2; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; display: inline-block; margin-left: 8px;}
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Initial state for sections that will animate in */
+        .section-animate-initial {
+            opacity: 0;
+            transform: translateX(20px); /* Slide in from right */
+        }
+
+        /* Class to apply to make a section enter (fade and slide in) */
+        .section-is-entering {
+            opacity: 1 !important;
+            transform: translateX(0) !important;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        /* Class to apply to make a section exit (fade and slide out) */
+        .section-is-exiting {
+            opacity: 0 !important;
+            transform: translateX(-20px) !important; /* Slide out to left */
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        @keyframes highlight-new-row {
+            0% {
+                background-color: rgba(255, 255, 0, 0.5); /* Light yellow, semi-transparent */
+            }
+            70% { /* Hold highlight for a bit */
+                background-color: rgba(255, 255, 0, 0.3);
+            }
+            100% {
+                background-color: transparent; /* Fade to transparent */
+            }
+        }
+
+        .new-score-row-highlight > td { /* Apply to TDs for better background control */
+            animation: highlight-new-row 1.5s ease-out;
+        }
+
+@keyframes flash-eliminated-player-cell {
+    0% {
+        background-color: rgba(211, 47, 47, 0.6); /* Semi-transparent danger red */
+    }
+    50% {
+        background-color: rgba(211, 47, 47, 0.3); /* Dimmer highlight */
+    }
+    100% {
+        background-color: transparent; /* Fade to transparent */
+    }
+}
+
+.player-just-eliminated-animation { /* This class will be applied to a <td> */
+    animation: flash-eliminated-player-cell 1.5s ease-out;
+}
+
+/* Animation for Winner Message */
+@keyframes animate-winner-message {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.winner-message-animate {
+    animation: animate-winner-message 0.5s ease-out forwards;
+}
+
+/* Styling for Winner's Cells in Table Footer */
+body.light-theme .winner-highlight-cell { /* Applied to <td> */
+    background-color: rgba(255, 215, 0, 0.3) !important; /* Light gold, semi-transparent */
+}
+
+body.dark-theme .winner-highlight-cell { /* Applied to <td> */
+    background-color: rgba(255, 215, 0, 0.4) !important; /* Slightly more opaque gold for dark theme */
+}
+
+/* Winner Celebration Overlay */
+.winner-celebration-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; 
+    overflow: hidden; 
+    z-index: 1000; 
+}
+
+.particle {
+    position: absolute;
+    top: -20px; /* Start above the screen */
+    opacity: 1;
+    will-change: transform, opacity; /* Performance hint */
+}
+
+/* Confetti Shapes */
+.confetti {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px; /* Slightly rounded square */
+}
+.confetti.circle {
+    border-radius: 50%;
+}
+
+/* Streamer Shape */
+.streamer {
+    width: 6px;
+    height: 100px; /* Long and thin */
+    border-radius: 3px;
+}
+
+/* Colors (can be expanded) */
+.color-red { background-color: #e74c3c; }
+.color-yellow { background-color: #f1c40f; }
+.color-blue { background-color: #3498db; }
+.color-green { background-color: #2ecc71; }
+.color-purple { background-color: #9b59b6; }
+.color-orange { background-color: #e67e22; }
+
+
+/* Animations */
+@keyframes fall-and-fade {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(110vh) rotate(720deg); /* Fall below screen, rotate a bit */
+        opacity: 0;
+    }
+}
+
+/* Applying animation - duration and delay will be varied by JS or multiple classes */
+.animate-fall-1 { animation: fall-and-fade 3s linear forwards; }
+.animate-fall-2 { animation: fall-and-fade 4s linear forwards; }
+.animate-fall-3 { animation: fall-and-fade 5s linear forwards; }
+
+@media (max-width: 480px) {
+    .score-option-btn {
+        padding: 0.2rem 0.2rem !important;   /* Adjusted for slightly more horizontal padding based on typical 'X' character width vs text */
+        font-size: 0.6rem !important;
+        line-height: 0.75rem !important;
+        letter-spacing: -0.5px;
+        min-width: 48px;  /* Approx width for "Mid (40)" with tiny font/padding */
+        word-break: break-word;
+        white-space: normal;
+        text-align: center; /* Center text if it wraps */
+        /* Ensure border is minimal or accounted for if it adds width */
+        border-width: 1px; /* Assuming it has a border, ensure it's minimal */
+    }
+}
+
+     .logo-icon { /* This is the span wrapping the SVG */
+        line-height: 1em; /* Helps with vertical alignment if SVG is display:inline-block */
+     }
+     .logo-icon svg {
+         display: inline-block; /* Ensure it behaves well with text */
+         width: 1em; /* Scale with the font size of the parent h1 */
+         height: 1em;
+         margin-left: 0.2em; /* Small gap */
+         margin-right: 0.2em; /* Small gap */
+         vertical-align: -0.12em; /* Adjust to align SVG baseline with text baseline */
+         /* transform: translateY(0.05em); */ /* Using vertical-align instead */
+     }
+
+     /* Footer Styling */
+     body.light-theme #appFooter {
+         border-color: var(--border-light);
+         color: var(--text-secondary-light);
+     }
+
+     body.dark-theme #appFooter {
+         border-color: var(--border-dark);
+         color: var(--text-secondary-dark);
+     }
     </style>
 </head>
 <body>
     <div class="app-container w-full max-w-4xl mx-auto p-4 md:p-8">
         <header class="mb-10 flex justify-between items-center">
-            <h1 id="appTitle" class="text-3xl md:text-4xl font-bold">Rummy Score Keeper</h1>
+            <h1 id="appTitle" class="text-3xl md:text-4xl font-bold flex items-center justify-center">
+                <span>Rummy</span>
+                <span class="logo-icon inline-block">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+                        <path d="M 50,95 C 20,65 0,45 0,25 C 0,5 20,0 50,25 C 80,0 100,5 100,25 C 100,45 80,65 50,95" fill="currentColor"/>
+                        <text x="50" y="65" font-family="sans-serif" font-weight="700" font-size="50" fill="white" text-anchor="middle">13</text>
+                    </svg>
+                </span>
+                <span>Buddy</span>
+            </h1>
             <div id="themeToggle" title="Toggle Theme"></div>
         </header>
 
@@ -205,7 +375,7 @@
             </div>
             <div class="mb-1 text-sm text-muted">Target: <span id="gameTargetScoreDisplay" class="font-semibold"></span></div>
             <div class="mb-6 text-xs text-muted">
-                Drops: Open <span id="gameOpenDropDisplay" class="font-semibold"></span> | Middle <span id="gameMiddleDropDisplay" class="font-semibold"></span> | Full Count <span id="gameFullCountDisplay" class="font-semibold"></span>
+                Drops: Open (OD) <span id="gameOpenDropDisplay" class="font-semibold"></span> | Middle (MD) <span id="gameMiddleDropDisplay" class="font-semibold"></span> | Full Count (FC) <span id="gameFullCountDisplay" class="font-semibold"></span> | Dealer: (D)
             </div>
             <div class="mb-8">
                 <h3 class="text-lg font-semibold mb-3">Round-by-Round Scores & Status</h3>
@@ -231,6 +401,9 @@
         </div>
     </div>
 
+    <footer id="appFooter" class="mt-12 pt-6 pb-2 text-center border-t">
+        <p class="text-sm">Developed by "Your Vish"</p>
+    </footer>
     <script>
         // DOM Elements - Declared globally, assigned in initializeApp
         let appTitle, setupSection, gameSection, playerNameInput, addPlayerButton, knownPlayersList, playerSetupList,
@@ -269,21 +442,64 @@
         }
         function loadTheme() { applyTheme(getStoredData(LS_THEME) || 'light'); }
 
-        function getFormattedEstDate(date = new Date()) { 
-            try {
-                const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/New_York' };
-                let formattedDate = new Intl.DateTimeFormat('en-US', options).format(date);
-                if (formattedDate.includes('undefined') || formattedDate.includes('GMT')) { 
-                     options.timeZone = undefined;
-                     formattedDate = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
-                }
-                return formattedDate;
-            } catch (e) { 
-                return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-            }
+function getFormattedEstDate(date = new Date(), includeTime = false) { 
+    try {
+        const options = { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            timeZone: 'America/New_York' // Attempt EST/EDT first
+        };
+        if (includeTime) {
+            options.hour = '2-digit';
+            options.minute = '2-digit';
+            options.second = '2-digit';
+            options.hour12 = true; 
         }
 
-function loadKnownPlayersDisplay() {
+        let formattedDateTime = new Intl.DateTimeFormat('en-US', options).format(date);
+        
+        let timeLooksMissing = includeTime && !formattedDateTime.match(/AM|PM/i) && !formattedDateTime.match(/\d{1,2}:\d{2}:\d{2}/);
+        if (formattedDateTime.includes('undefined') || formattedDateTime.includes('GMT') || timeLooksMissing ) { 
+             delete options.timeZone; // Fallback to browser's local timezone
+             
+             // Ensure time options are present if includeTime is true and they seemed missing
+             if (includeTime) {
+                options.hour = '2-digit';
+                options.minute = '2-digit';
+                options.second = '2-digit';
+                options.hour12 = true;
+             } else { // Ensure time options are absent if includeTime is false for the fallback
+                delete options.hour;
+                delete options.minute;
+                delete options.second;
+                delete options.hour12;
+             }
+             formattedDateTime = new Intl.DateTimeFormat('en-US', options).format(date);
+        }
+        return formattedDateTime;
+    } catch (e) { 
+        console.error("Error formatting date:", e);
+        // Basic fallback string
+        let day = String(date.getDate()).padStart(2, '0');
+        let month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+        let year = date.getFullYear();
+        let fallback = `${month}/${day}/${year}`; // MM/DD/YYYY
+
+        if (includeTime) {
+            let hours = date.getHours();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // Hour '0' should be '12'
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            fallback += `, ${hours}:${minutes}:${seconds} ${ampm}`;
+        }
+        return fallback;
+    }
+}
+
+        function loadKnownPlayersDisplay() {
     let knownPlayerObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
     
     let migrationOccurred = false;
@@ -316,17 +532,17 @@ function loadKnownPlayersDisplay() {
     
     knownPlayerObjects.forEach(playerObj => {
         const entryDiv = document.createElement('div');
-        // Classes for compact "chip" layout
+        // Classes for compact "chip" layout (should match step 1 of previous plan)
         entryDiv.className = 'known-player-entry inline-flex items-center mb-1 mr-2 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded-md shadow-sm';
 
         const selectBtn = document.createElement('button');
-        // Classes for compact button, text-left. CSS handles text-transform.
+        // Classes for compact button, text-left. CSS handles text-transform. (should match step 1 of previous plan)
         selectBtn.className = 'btn btn-secondary text-xs py-0 px-1 known-player-select-btn text-left'; 
         selectBtn.textContent = playerObj.displayName; 
         selectBtn.addEventListener('click', () => addKnownPlayerToNewGameSetup(playerObj.displayName));
         
         const deleteBtn = document.createElement('button');
-        // Classes for compact delete button
+        // Classes for compact delete button (should match step 1 of previous plan)
         deleteBtn.className = 'btn btn-text-danger text-xs py-0 px-1 known-player-delete-btn flex-shrink-0 ml-1';
         deleteBtn.textContent = 'X';
         deleteBtn.setAttribute('data-player-id', playerObj.id); 
@@ -337,101 +553,13 @@ function loadKnownPlayersDisplay() {
         knownPlayersList.appendChild(entryDiv);
     });
 }
-
-        function handleDeleteKnownPlayer(playerId) {
-            // Find the player object to get the displayName for the confirm dialog
-            const knownPlayersObjectsForConfirm = getStoredData(LS_KNOWN_PLAYERS) || [];
-            const playerObjectToDelete = knownPlayersObjectsForConfirm.find(p => p.id === playerId);
-
-            if (!playerObjectToDelete) {
-                console.warn("Player to delete not found in known list (for confirm dialog):", playerId);
-                // It's possible the list was modified elsewhere, or bad ID. Refresh display.
-                loadKnownPlayersDisplay();
-                return;
-            }
-
-            if (confirm(`Are you sure you want to remove "${playerObjectToDelete.displayName}" from the known players list?`)) {
-                let knownPlayersObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
-                
-                // Robustness: Ensure all entries are objects and have an id.
-                // This also handles potential migration from old string-only format if any survived.
-                knownPlayersObjects = knownPlayersObjects
-                    .map(entry => {
-                        if (typeof entry === 'string') { 
-                            // This case should ideally not be hit if add/load functions are consistently migrating
-                            return { id: entry.toLowerCase(), displayName: entry };
-                        }
-                        return entry;
-                    })
-                    .filter(entry => entry && typeof entry.id === 'string');
-
-                const updatedKnownPlayers = knownPlayersObjects.filter(pObj => pObj.id !== playerId);
-
-                // Save only if a change actually occurred.
-                if (updatedKnownPlayers.length < knownPlayersObjects.length) {
-                    setStoredData(LS_KNOWN_PLAYERS, updatedKnownPlayers);
-                } else {
-                    // This might happen if the ID was passed but somehow not in the list after re-filtering/mapping.
-                    console.warn("Attempted to delete known player, but ID not found after final processing:", playerId);
-                }
-
-                // Also remove from current game setup if present
-                const initialSetupLength = playersForNewGameSetup.length;
-                playersForNewGameSetup = playersForNewGameSetup.filter(
-                    playerInSetup => playerInSetup.name.toLowerCase() !== playerId
-                );
-
-                if (playersForNewGameSetup.length < initialSetupLength) {
-                    renderNewGameSetupPlayersList(); // Refresh the "Players for New Game:" display
-                }
-
-                loadKnownPlayersDisplay(); // Refresh the known players list display
-            }
+        function addKnownPlayerToStorage(name) {
+            let known = getStoredData(LS_KNOWN_PLAYERS) || [];
+            if (!known.includes(name)) { known.push(name); setStoredData(LS_KNOWN_PLAYERS, known.sort()); loadKnownPlayersDisplay(); }
         }
-
-function addKnownPlayerToStorage(name) {
-    let knownPlayersObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
-
-    // Migration/Normalization: Ensure all entries are in the new object format.
-    knownPlayersObjects = knownPlayersObjects.map(entry => {
-        if (typeof entry === 'string') {
-            return { id: entry.toLowerCase(), displayName: entry };
-        }
-        if (entry && typeof entry.id === 'string' && typeof entry.displayName === 'string') {
-            return { id: entry.id.toLowerCase(), displayName: entry.displayName };
-        }
-        return null; 
-    }).filter(entry => entry !== null); 
-
-    const lowerCaseId = name.toLowerCase();
-    const existingPlayerObj = knownPlayersObjects.find(p => p.id === lowerCaseId);
-
-    if (!existingPlayerObj) {
-        const newPlayerObj = { id: lowerCaseId, displayName: name }; 
-        knownPlayersObjects.push(newPlayerObj);
-        knownPlayersObjects.sort((a, b) => a.displayName.localeCompare(b.displayName));
-        setStoredData(LS_KNOWN_PLAYERS, knownPlayersObjects);
-    }
-    
-    loadKnownPlayersDisplay(); 
-}
-        function addKnownPlayerToNewGameSetup(displayName) { // Parameter is now displayName
-            // Duplicate check in setup list is case-insensitive using the displayName
-            if (playersForNewGameSetup.find(p => p.name.toLowerCase() === displayName.toLowerCase())) { 
-                alert(`${displayName} is already in setup.`); return; 
-            }
-            // Add to setup list using the displayName (which has original casing)
-            playersForNewGameSetup.push({ 
-                id: String(Date.now() + Math.random()).replace(/\./g, '_'), 
-                name: displayName, // Use the passed displayName
-                scores: [], 
-                totalScore: 0, 
-                eliminated: false, 
-                canReEnterCurrentRound: false, 
-                isDealer: false, 
-                reEntryCount: 0, 
-                reEntryEvents: [] 
-            });
+        function addKnownPlayerToNewGameSetup(name) {
+            if (playersForNewGameSetup.find(p => p.name.toLowerCase() === name.toLowerCase())) { alert(`${name} is already in setup.`); return; }
+            playersForNewGameSetup.push({ id: String(Date.now() + Math.random()).replace(/\./g, '_'), name: name, scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: false, reEntryCount: 0, reEntryEvents: [] });
             renderNewGameSetupPlayersList();
         }
         function handleAddNewPlayerToSetup() {
@@ -445,17 +573,21 @@ function addKnownPlayerToStorage(name) {
             playerNameInput.focus();
         }
         function renderNewGameSetupPlayersList() {
-            playerSetupList.innerHTML = playersForNewGameSetup.length === 0 ? '<p class="text-sm text-muted">Add players for new game.</p>' : '';
-            playersForNewGameSetup.forEach((player) => {
-                const div = document.createElement('div');
-                // New classes for the wrapper div
-                div.className = 'player-setup-entry inline-flex items-center mb-1 mr-2 px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded-md shadow-sm';
-                // New innerHTML with updated classes for span and button
-                div.innerHTML = `<span class="text-gray-700 dark:text-gray-200 text-sm">${player.name}</span><button class="btn btn-text-danger text-xs py-0 px-1 font-semibold ml-2" data-id="${player.id}">REMOVE</button>`;
-                div.querySelector('button').addEventListener('click', (e) => removePlayerFromNewGameSetup(e.target.dataset.id));
-                playerSetupList.appendChild(div);
-            });
-        }
+    playerSetupList.innerHTML = playersForNewGameSetup.length === 0 ? '<p class="text-sm text-muted">Add players for new game.</p>' : '';
+    playersForNewGameSetup.forEach((player) => {
+        const div = document.createElement('div');
+        // Apply compact "chip" styling classes to the wrapper div
+        div.className = 'player-setup-entry inline-flex items-center mb-1 mr-2 px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded-md shadow-sm';
+        
+        // Apply compact styling to inner elements
+        div.innerHTML = 
+            `<span class="text-gray-700 dark:text-gray-200 text-sm">${player.name}</span>` +
+            `<button class="btn btn-text-danger text-xs py-0 px-1 font-semibold ml-2" data-id="${player.id}">REMOVE</button>`;
+        
+        div.querySelector('button').addEventListener('click', (e) => removePlayerFromNewGameSetup(e.target.dataset.id));
+        playerSetupList.appendChild(div);
+    });
+}
         function removePlayerFromNewGameSetup(playerId) {
             playersForNewGameSetup = playersForNewGameSetup.filter(p => p.id !== playerId);
             renderNewGameSetupPlayersList();
@@ -483,6 +615,101 @@ function addKnownPlayerToStorage(name) {
                 savedGamesContainer.appendChild(div);
             });
         }
+
+function handleDeleteKnownPlayer(playerId) {
+    // Find the player object to get the displayName for the confirmation message
+    const knownPlayersForConfirmation = getStoredData(LS_KNOWN_PLAYERS) || [];
+    const playerObjectToDelete = knownPlayersForConfirmation.find(p => p.id === playerId);
+
+    if (!playerObjectToDelete) {
+        console.warn("Attempted to delete known player, but ID not found for confirmation:", playerId);
+        loadKnownPlayersDisplay(); // Refresh display in case of inconsistency
+        return;
+    }
+
+    if (confirm(`Are you sure you want to remove "${playerObjectToDelete.displayName}" from the known players list?`)) {
+        let knownPlayersObjects = getStoredData(LS_KNOWN_PLAYERS) || [];
+        
+        // Robust processing of the list before filtering
+        knownPlayersObjects = knownPlayersObjects.map(entry => {
+            if (typeof entry === 'string') { return { id: entry.toLowerCase(), displayName: entry }; }
+            if (entry && typeof entry.id === 'string' && typeof entry.displayName === 'string') {
+                return { id: entry.id.toLowerCase(), displayName: entry.displayName };
+            }
+            return null;
+        }).filter(entry => entry !== null);
+
+        const initialKnownLength = knownPlayersObjects.length;
+        const updatedKnownPlayers = knownPlayersObjects.filter(pObj => pObj.id !== playerId);
+
+        if (updatedKnownPlayers.length < initialKnownLength) {
+            setStoredData(LS_KNOWN_PLAYERS, updatedKnownPlayers);
+        } else {
+            console.warn("Known player ID not found for deletion in main list processing:", playerId);
+        }
+
+        // Also remove from playersForNewGameSetup if present
+        const initialSetupLength = playersForNewGameSetup.length;
+        playersForNewGameSetup = playersForNewGameSetup.filter(
+            playerInSetup => playerInSetup.name.toLowerCase() !== playerId
+        );
+
+        if (playersForNewGameSetup.length < initialSetupLength) {
+            renderNewGameSetupPlayersList(); // Refresh the setup list display
+        }
+        
+        loadKnownPlayersDisplay(); // Refresh the known players list display
+    }
+}
+
+function showWinnerCelebrationOverlay() {
+    const overlay = document.createElement('div');
+    overlay.className = 'winner-celebration-overlay';
+
+    const numConfetti = 70; // Number of confetti particles
+    const numStreamers = 15; // Number of streamers
+    const colors = ['color-red', 'color-yellow', 'color-blue', 'color-green', 'color-purple', 'color-orange'];
+    const confettiShapes = ['confetti', 'confetti circle'];
+    const animationDurations = ['animate-fall-1', 'animate-fall-2', 'animate-fall-3']; // Corresponds to 3s, 4s, 5s
+
+    // Create Confetti
+    for (let i = 0; i < numConfetti; i++) {
+        const confettiPiece = document.createElement('div');
+        const shape = confettiShapes[Math.floor(Math.random() * confettiShapes.length)];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const animClass = animationDurations[Math.floor(Math.random() * animationDurations.length)];
+        
+        confettiPiece.className = `particle ${shape} ${color} ${animClass}`;
+        confettiPiece.style.left = Math.random() * 100 + 'vw'; 
+        confettiPiece.style.animationDelay = Math.random() * 1.5 + 's'; 
+        confettiPiece.style.transform = `translateX(${(Math.random() * 60) - 30}px) rotate(0deg)`; 
+        
+        overlay.appendChild(confettiPiece);
+    }
+
+    // Create Streamers
+    for (let i = 0; i < numStreamers; i++) {
+        const streamerPiece = document.createElement('div');
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const animClass = animationDurations[1 + Math.floor(Math.random() * (animationDurations.length - 1))]; 
+
+        streamerPiece.className = `particle streamer ${color} ${animClass}`;
+        streamerPiece.style.left = Math.random() * 100 + 'vw';
+        streamerPiece.style.animationDelay = Math.random() * 2 + 's'; 
+        streamerPiece.style.transform = `translateX(${(Math.random() * 40) - 20}px) rotate(${(Math.random() * 60) - 30}deg)`;
+
+        overlay.appendChild(streamerPiece);
+    }
+
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+        if (document.body.contains(overlay)) { // Check if overlay still exists before trying to remove
+            document.body.removeChild(overlay);
+        }
+    }, 7000); // Max animation duration (5s) + max animation delay (2s)
+}
+
         function handleDeleteGame(gameId) {
             if (!confirm("Delete this saved game?")) return;
             let savedGames = getStoredData(LS_SAVED_GAMES_LIST) || [];
@@ -508,33 +735,73 @@ function addKnownPlayerToStorage(name) {
             } else if (newName !== null) { alert("Game name cannot be empty.");}
         }
         
-        function generateDefaultGameName(playersList) {
-            const playerNames = playersList.map(p => p.name).slice(0,2).join(' & ');
-            return `Game: ${playerNames} - ${getFormattedEstDate()}`;
-        }
+function generateDefaultGameName(playersList) {
+    const playerNames = (playersList && playersList.length > 0) 
+        ? playersList.map(p => p.name).slice(0,2).join(' & ') 
+        : "New Game"; // Fallback if playersList is empty or undefined
+    // Call with includeTime = true
+    return `Game: ${playerNames} - ${getFormattedEstDate(new Date(), true)}`; 
+}
 
-        function handleStartNewGame() {
-            if (playersForNewGameSetup.length < 2) { alert('Select at least 2 players to start the game.'); return; }
-            currentGame = {
-                id: null, name: generateDefaultGameName(playersForNewGameSetup), 
-                players: JSON.parse(JSON.stringify(playersForNewGameSetup)).map((p, index) => ({
-                    ...p, id: String(p.id).replace(/\./g, '_'), 
-                    scores: [], totalScore: 0, eliminated: false, canReEnterCurrentRound: false, isDealer: index === 0, reEntryCount: 0, reEntryEvents: []
-                })),
-                currentRound: 0,
-                gameTargetScore: parseInt(gameTargetScoreInput.value) || 201,
-                openDropScore: parseInt(openDropScoreInput.value) || 20,
-                middleDropScore: parseInt(middleDropScoreInput.value) || 40,
-                fullCountScore: parseInt(fullCountScoreInput.value) || 80,
-                lastSavedTimestamp: new Date().toISOString(),
-                initialPlayerOrder: playersForNewGameSetup.map(p => String(p.id).replace(/\./g, '_')),
-                roundDealerHistory: [],
-                isComplete: false 
+function handleStartNewGame() {
+    if (playersForNewGameSetup.length < 2) { 
+        alert('Select at least 2 players to start the game.'); 
+        return; 
+    }
+
+    // Explicitly clear previous game status message and animation classes
+    if (gameStatusMessage) {
+        gameStatusMessage.textContent = '';
+        gameStatusMessage.classList.remove('winner-message-animate'); 
+    }
+    // Clean animation classes from sections to prevent stale animation states
+    if (gameSection) {
+        gameSection.classList.remove('section-is-entering', 'section-animate-initial', 'section-is-exiting', 'hidden');
+    }
+    if (setupSection) { 
+        setupSection.classList.remove('section-is-entering', 'section-animate-initial', 'section-is-exiting', 'hidden');
+    }
+
+    // Create a pristine currentGame object
+    currentGame = {
+        id: null, // Will be set on first auto-save
+        name: generateDefaultGameName(playersForNewGameSetup), // Name will be made more unique in a later step
+        players: playersForNewGameSetup.map((playerSetupObj, index) => {
+            // playerSetupObj is from playersForNewGameSetup, e.g., {id: 'someOriginalId', name: 'PlayerName'}
+            // We create a new, clean player object for the game state.
+            return {
+                id: String(playerSetupObj.id).replace(/\./g, '_'), // Use and sanitize ID from setup
+                name: playerSetupObj.name, // Use name from setup
+                scores: [], 
+                totalScore: 0, 
+                eliminated: false, 
+                canReEnterCurrentRound: false, 
+                isDealer: index === 0, 
+                reEntryCount: 0, 
+                reEntryEvents: [],
+                isWinner: false,      // Explicitly reset
+                justEliminated: false // Explicitly reset
             };
-            playersForNewGameSetup = []; renderNewGameSetupPlayersList();
-            transitionToGameView();
-            autoSaveGameProgress(); 
-        }
+        }),
+        currentRound: 0,
+        gameTargetScore: parseInt(gameTargetScoreInput.value) || 201,
+        openDropScore: parseInt(openDropScoreInput.value) || 20,
+        middleDropScore: parseInt(middleDropScoreInput.value) || 40,
+        fullCountScore: parseInt(fullCountScoreInput.value) || 80,
+        lastSavedTimestamp: new Date().toISOString(),
+        initialPlayerOrder: playersForNewGameSetup.map(p => String(p.id).replace(/\./g, '_')),
+        roundDealerHistory: [],
+        isComplete: false,
+        justSubmittedNewRound: false // Explicitly reset
+    };
+
+    playersForNewGameSetup = []; // Clear the setup list array
+    renderNewGameSetupPlayersList(); // Update UI for the now empty setup list
+    
+    transitionToGameView(); 
+    
+    autoSaveGameProgress(); 
+}
 
         function handleLoadGame(gameId) {
             const savedGames = getStoredData(LS_SAVED_GAMES_LIST) || [];
@@ -609,53 +876,157 @@ function addKnownPlayerToStorage(name) {
             showAutoSaveNotification();
         }
         
-        function transitionToGameView() {
-            if (!currentGame) return;
+function transitionToGameView() {
+    if (!currentGame) return;
+
+    // Start exiting setupSection
+    if (setupSection) {
+        // Clean up any existing animation classes on setupSection first
+        setupSection.classList.remove('section-is-entering', 'section-animate-initial');
+        setupSection.classList.add('section-is-exiting');
+    }
+
+    // After exit animation, switch visibility and start entering gameSection
+    setTimeout(() => {
+        if (setupSection) {
             setupSection.classList.add('hidden');
-            gameSection.classList.remove('hidden');
+            setupSection.classList.remove('section-is-exiting'); 
+        }
+
+        if (gameSection) {
+            // Prepare gameSection for entry animation
+            gameSection.classList.remove('hidden'); 
+            // Clean up any existing animation classes on gameSection first
+            gameSection.classList.remove('section-is-exiting'); 
+            gameSection.classList.add('section-animate-initial');
+
+            // Force a reflow to ensure initial state is applied before animation
+            void gameSection.offsetHeight; 
+
+            gameSection.classList.add('section-is-entering');
+
+            // Explicitly update all game-specific display elements from currentGame
             if(appTitle) appTitle.classList.add('navigable'); 
-            if(currentGameNameDisplay) currentGameNameDisplay.textContent = currentGame.name || "Scoreboard";
-            if(currentRoundDisplay) currentRoundDisplay.textContent = currentGame.currentRound;
-            if(gameTargetScoreDisplay) gameTargetScoreDisplay.textContent = currentGame.gameTargetScore;
-            if(gameOpenDropDisplay) gameOpenDropDisplay.textContent = currentGame.openDropScore;
-            if(gameMiddleDropDisplay) gameMiddleDropDisplay.textContent = currentGame.middleDropScore;
-            if(gameFullCountDisplay) gameFullCountDisplay.textContent = currentGame.fullCountScore;
-            if(gameStatusMessage) gameStatusMessage.textContent = '';
-            renderRoundScoresTable(); 
+            
+            if(currentGameNameDisplay) {
+                currentGameNameDisplay.textContent = currentGame.name || "Scoreboard"; 
+            }
+            if(currentRoundDisplay) {
+                currentRoundDisplay.textContent = currentGame.currentRound;
+            }
+            if(gameTargetScoreDisplay) {
+                gameTargetScoreDisplay.textContent = currentGame.gameTargetScore; 
+            }
+            if(gameOpenDropDisplay) {
+                gameOpenDropDisplay.textContent = currentGame.openDropScore; 
+            }
+            if(gameMiddleDropDisplay) {
+                gameMiddleDropDisplay.textContent = currentGame.middleDropScore; 
+            }
+            if(gameFullCountDisplay) {
+                gameFullCountDisplay.textContent = currentGame.fullCountScore; 
+            }
+            
+            // gameStatusMessage is usually set by checkGameEnd (called via renderRoundScoresTable).
+            // If it's a brand new game (round 0, no player has scores), ensure message is clear.
+            // handleStartNewGame also clears it, this is an additional safeguard.
+            let isBrandNewGame = currentGame.currentRound === 0 && currentGame.players.every(p => p.scores.length === 0);
+            if (isBrandNewGame && gameStatusMessage) {
+                 gameStatusMessage.textContent = '';
+                 gameStatusMessage.classList.remove('winner-message-animate'); // Also clear animation
+            }
+
+            renderRoundScoresTable(); // This will build the table based on new currentGame
+
+            // After entry animation, clean up animation classes from gameSection
+            setTimeout(() => {
+                if (gameSection) {
+                    gameSection.classList.remove('section-is-entering');
+                    gameSection.classList.remove('section-animate-initial');
+                }
+            }, 300); // This duration should match the CSS transition duration
         }
+    }, 300); // This duration should match the CSS transition duration
+}
         
-        function transitionToSetupView() {
-            console.log("Transitioning to setup view..."); 
-            if(gameSection) gameSection.classList.add('hidden');
-            if(setupSection) setupSection.classList.remove('hidden');
-            if(appTitle) appTitle.classList.remove('navigable'); 
-            loadSavedGamesDisplay(); loadKnownPlayersDisplay(); renderNewGameSetupPlayersList(); 
-            if(gameSection) console.log("Game section hidden:", gameSection.classList.contains('hidden')); 
-            if(setupSection) console.log("Setup section visible:", !setupSection.classList.contains('hidden')); 
+function transitionToSetupView() {
+    console.log("Transitioning to setup view..."); 
+
+    // 1. Start exiting gameSection
+    if (gameSection) { 
+        gameSection.classList.add('section-is-exiting');
+    }
+
+    // 2. After exit animation, switch visibility and start entering setupSection
+    setTimeout(() => {
+        if (gameSection) {
+            gameSection.classList.add('hidden');
+            gameSection.classList.remove('section-is-exiting'); // Clean up
         }
+
+        if (setupSection) { 
+            // Prepare setupSection for entry animation
+            setupSection.classList.remove('hidden'); 
+            setupSection.classList.add('section-animate-initial');
+
+            // Force a reflow
+            void setupSection.offsetHeight; 
+
+            setupSection.classList.add('section-is-entering');
+            
+            // Original logic to populate/reset setup view data:
+            if(appTitle) appTitle.classList.remove('navigable'); 
+            loadSavedGamesDisplay(); 
+            loadKnownPlayersDisplay(); 
+            renderNewGameSetupPlayersList(); 
+            
+            // Debug logs from original, can be kept or removed
+            // if(gameSection) console.log("Game section hidden:", gameSection.classList.contains('hidden')); 
+            // if(setupSection) console.log("Setup section visible:", !setupSection.classList.contains('hidden'));
+
+            // 3. After entry animation, clean up animation classes from setupSection
+            setTimeout(() => {
+                if (setupSection) {
+                    setupSection.classList.remove('section-is-entering');
+                    setupSection.classList.remove('section-animate-initial');
+                }
+            }, 300); // This duration should match the CSS transition duration
+        }
+    }, 300); // This duration should match the CSS transition duration
+}
 
         function renderRoundScoresTable() {
             if (!currentGame || currentGame.players.length === 0) {
                 if(roundScoresTableContainer) roundScoresTableContainer.innerHTML = '<p class="text-sm text-muted">No rounds played yet or no players.</p>'; return;
             }
+
+            const highlightNewRound = currentGame.justSubmittedNewRound;
+            if (highlightNewRound) {
+                currentGame.justSubmittedNewRound = false; // Reset flag
+            }
+
             let tableHTML = '<table class="min-w-full divide-y shadow-sm rounded-lg overflow-hidden"><thead><tr>';
             tableHTML += '<th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Round</th>';
             currentGame.players.forEach(player => {
-                let dealerMark = player.isDealer ? '<span class="text-xs text-muted">(Dealer)</span>' : '';
+                let dealerMark = player.isDealer ? '<span class="text-xs text-muted">(D)</span>' : '';
                 tableHTML += `<th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">${player.name} ${dealerMark}</th>`;
             });
             tableHTML += '</tr></thead><tbody class="divide-y">';
             for (let i = 0; i < currentGame.currentRound; i++) {
-                tableHTML += `<tr><td class="px-4 py-3 whitespace-nowrap text-sm font-medium">Round ${i + 1}</td>`;
+                let trAttributes = ""; 
+                if (highlightNewRound && i === (currentGame.currentRound - 1)) {
+                    trAttributes = " class='new-score-row-highlight'";
+                }
+                tableHTML += `<tr${trAttributes}><td class="px-4 py-3 whitespace-nowrap text-sm font-medium">Round ${i + 1}</td>`;
                 currentGame.players.forEach(player => {
                     const scoreItem = player.scores[i];
                     let scoreDisplay = '-';
                     if (scoreItem !== undefined) {
                         scoreDisplay = `${scoreItem.points}`;
                         if (scoreItem.points === 0) scoreDisplay += " 🎉";
-                        if (scoreItem.type === 'OD') scoreDisplay += " (Open Drop)";
-                        else if (scoreItem.type === 'MD') scoreDisplay += " (Middle Drop)";
-                        else if (scoreItem.type === 'FC') scoreDisplay += " (Full Count)";
+                        if (scoreItem.type === 'OD') scoreDisplay += " (OD)";
+                        else if (scoreItem.type === 'MD') scoreDisplay += " (MD)";
+                        else if (scoreItem.type === 'FC') scoreDisplay += " (FC)";
                     }
                     tableHTML += `<td class="px-4 py-3 whitespace-nowrap text-sm">${scoreDisplay}</td>`;
                 });
@@ -664,17 +1035,30 @@ function addKnownPlayerToStorage(name) {
             tableHTML += '</tbody><tfoot><tr class="border-t-2 dark:border-gray-600">';
             tableHTML += '<td class="px-4 py-3 text-sm font-semibold">Current Status</td>';
             currentGame.players.forEach(player => {
-                let statusText = `${player.totalScore}`;
-                 if (player.reEntryCount > 0) {
-                    statusText += ` (Re-entered ${player.reEntryCount} time${player.reEntryCount > 1 ? 's' : ''})`;
-                }
+                let statusText = `${player.totalScore}`; // Base score
+
                 if (player.eliminated) {
                     statusText += ' (Out)';
+                    // Only show re-entry count if they are currently eliminated AND have re-entered
+                    if (player.reEntryCount > 0) {
+                       statusText += ` (Re-entered ${player.reEntryCount} time${player.reEntryCount > 1 ? 's' : ''})`;
+                    }
+                    // Show re-enter button if they are eliminated AND can re-enter this round
                     if (player.canReEnterCurrentRound) { 
                         statusText += ` <button class="btn btn-warning text-xs py-0.5 px-1 re-enter-btn" data-player-id="${player.id}">Re-enter</button>`;
                     }
                 }
-                tableHTML += `<td class="px-4 py-3 text-sm font-semibold">${statusText}</td>`;
+                // If player is not eliminated, no "(Out)" text, no re-entry count text, and no re-enter button will be added here.
+                let tdClasses = "px-4 py-3 text-sm font-semibold"; // Original classes for the cell
+                
+                if (player.justEliminated) {
+                    tdClasses += " player-just-eliminated-animation"; 
+                    player.justEliminated = false; // Reset flag after use
+                } else if (player.isWinner === true) { // Check if the player is the winner
+                    tdClasses += " winner-highlight-cell";
+                    // player.isWinner is a persistent flag for this game state, not reset here
+                }
+                tableHTML += `<td class="${tdClasses}">${statusText}</td>`;
             });
             tableHTML += '</tr></tfoot></table>';
             if(roundScoresTableContainer) roundScoresTableContainer.innerHTML = tableHTML;
@@ -687,16 +1071,13 @@ function addKnownPlayerToStorage(name) {
             const playerToReEnter = currentGame.players.find(p => String(p.id) === String(playerId));
             
             if (playerToReEnter && playerToReEnter.eliminated && playerToReEnter.canReEnterCurrentRound) {
-                let highestScoreOfOthersBelowTarget = 0;
-                const scoresOfOtherPlayersBelowTarget = currentGame.players
-                    .filter(p => p.id !== playerToReEnter.id && p.totalScore < currentGame.gameTargetScore)
-                    .map(p => p.totalScore);
-
-                if (scoresOfOtherPlayersBelowTarget.length > 0) {
-                    highestScoreOfOthersBelowTarget = Math.max(0, ...scoresOfOtherPlayersBelowTarget);
+                let highestScoreOfOthers = 0;
+                const scoresOfOtherPlayers = currentGame.players.filter(p => p.id !== playerToReEnter.id).map(p => p.totalScore); 
+                if (scoresOfOtherPlayers.length > 0) {
+                    highestScoreOfOthers = Math.max(0, ...scoresOfOtherPlayers);
                 }
-                // If scoresOfOtherPlayersBelowTarget is empty, highestScoreOfOthersBelowTarget remains 0.
-                const newBaselineScore = highestScoreOfOthersBelowTarget + 1;
+                
+                const newBaselineScore = highestScoreOfOthers + 1;
                 
                 playerToReEnter.totalScore = newBaselineScore; 
                 playerToReEnter.eliminated = false;
@@ -736,7 +1117,7 @@ function addKnownPlayerToStorage(name) {
                 }
                 inputGroup.innerHTML = `
                     <label class="block text-md font-medium mb-2">${player.name} ${dealerMarkForModal}:</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                    <div class="grid grid-cols-4 gap-1 mb-3">
                         <button class="btn score-option-btn" data-score="0" data-type="win">Win (0)</button>
                         <button class="btn score-option-btn" data-score="${currentGame.openDropScore}" data-type="OD">Open (${currentGame.openDropScore})</button>
                         <button class="btn score-option-btn" data-score="${currentGame.middleDropScore}" data-type="MD">Mid (${currentGame.middleDropScore})</button>
@@ -767,79 +1148,123 @@ function addKnownPlayerToStorage(name) {
 
 function handleSubmitScores() {
     if (!currentGame) return;
-    let allScoresValid = true; let zeroScoreCount = 0; const roundScoresData = []; 
+
+    let playersWithErrors = [];
+    let allScoresValid = true; 
+    let zeroScoreCount = 0; 
+    const roundScoresData = []; 
+
     const roundIndexBeingProcessed = isEditingLastRoundGlobal ? currentGame.currentRound - 1 : currentGame.currentRound;
 
-    // Capture player states before this round's scores are applied or re-applied (for edits)
     const playerStatesBeforeThisRound = currentGame.players.map(p => ({ 
         id: p.id, 
-        wasEliminated: p.eliminated, // Their status *before* this round/edit
+        wasEliminated: p.eliminated,
     }));
 
     currentGame.players.forEach(player => {
-        // If processing a new round (not editing) and player is already eliminated,
-        // they lose prior re-entry eligibility for *this new round's* scoring.
-        // This does NOT prevent their re-entry status from being re-evaluated if an EDIT occurs.
         if (!isEditingLastRoundGlobal && player.eliminated) { 
-            player.canReEnterCurrentRound = false; // Lose eligibility from previous round if not taken
-            return; // Don't collect scores for them for this new round
-        } 
+            // For new rounds, if player already eliminated, don't process score input.
+            // Their canReEnterCurrentRound was already set to false at start of this loop in earlier versions,
+            // ensure this state is handled (e.g. they aren't in playersWithErrors).
+            // This 'return' means they are skipped for score validation for this new round.
+            return; 
+        }
         
         const inputElement = document.getElementById(`score-input-${player.id}`);
         const typeElement = document.getElementById(`score-type-${player.id}`);
-        // If editing, an eliminated player might not have an inputElement if they were skipped in openScoreModal.
-        // However, their existing score for the round being edited will be used.
-        // For active players (or all players if inputs are always rendered for edits), get new scores.
-        if (!inputElement && isEditingLastRoundGlobal && player.scores[roundIndexBeingProcessed] !== undefined) {
-            // Player is eliminated, no new input, but use their existing score for this edited round
+
+        // If editing, an eliminated player might not have an inputElement if openScoreModal skipped them.
+        // We should use their existing score for the round being edited if it exists.
+        if (!inputElement && isEditingLastRoundGlobal && player.scores && player.scores[roundIndexBeingProcessed] !== undefined) {
+            const existingScoreData = player.scores[roundIndexBeingProcessed];
+            if (existingScoreData.points === 0) zeroScoreCount++;
             roundScoresData.push({ 
                 playerId: player.id, 
-                points: player.scores[roundIndexBeingProcessed].points, 
-                type: player.scores[roundIndexBeingProcessed].type 
+                points: existingScoreData.points, 
+                type: existingScoreData.type 
             });
-            if (player.scores[roundIndexBeingProcessed].points === 0) zeroScoreCount++;
             return; // Move to next player
         }
-        if (!inputElement) { return; } // Should not happen for active players
+        
+        // If inputElement is still not found for a player who should have one (active, or editing their score)
+        // This implies an issue with openScoreModal or player state if they should be scorable.
+        // For now, if no input element and no existing score to use (above), it will be caught by blank score check.
+        // Or, more directly, consider it an error if inputElement is null for someone not covered by above.
+        if (!inputElement) {
+            // This case needs careful consideration: if a player is part of the round but no input field for them.
+            // This might happen if an eliminated player is part of an *edited* round but openScoreModal didn't create inputs for them.
+            // The current openScoreModal *does* create inputs for all players if isEditing.
+            // So, if !inputElement here, it's likely a player who shouldn't be scored or an error.
+            // Let's assume for now that players who should be scored will have an inputElement.
+            // If not, the scoreValue will be effectively blank.
+        }
 
-        const scoreValue = inputElement.value.trim();
+        const scoreValue = inputElement ? inputElement.value.trim() : ""; // Default to blank if no input
         const scoreType = typeElement ? typeElement.value : 'manual';
 
-        if (scoreValue === '') { alert(`Enter score for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
+        if (scoreValue === '') {
+            // Only add error if player is not eliminated (or if editing, consider all players in round)
+            // The initial check `!isEditingLastRoundGlobal && player.eliminated` handles skipping already eliminated players for new rounds.
+            // So, if we reach here, the player is either active, or we are editing.
+            playersWithErrors.push({ name: player.name, issue: "score is blank" });
+            allScoresValid = false;
+            return; 
+        }
         const points = parseInt(scoreValue);
-        if (isNaN(points)) { alert(`Invalid score for ${player.name}.`); inputElement.focus(); allScoresValid = false; return; }
+        if (isNaN(points)) {
+            playersWithErrors.push({ name: player.name, issue: "score is not a valid number" });
+            allScoresValid = false;
+            return; 
+        }
         
         if (points !== 0 && points < 2) { 
-            alert(`Minimum score for a player (if not the winner) is 2. ${player.name} entered ${points}.`);
-            inputElement.focus(); allScoresValid = false; return;
+            playersWithErrors.push({ name: player.name, issue: `score of ${points} is too low (min 2, or 0 for winner)`});
+            allScoresValid = false; 
+            return;
         }
         if (points > currentGame.fullCountScore) { 
-            alert(`Max score for a round is ${currentGame.fullCountScore} for ${player.name}.`); 
-            inputElement.focus(); allScoresValid = false; return; 
+            playersWithErrors.push({ name: player.name, issue: `score of ${points} is too high (max ${currentGame.fullCountScore})`});
+            allScoresValid = false; 
+            return;
         }
+
         if (points === 0) zeroScoreCount++;
         roundScoresData.push({ playerId: player.id, points: points, type: scoreType });
     });
 
-    if (!allScoresValid) return;
-    if (zeroScoreCount !== 1) { alert("Exactly one player must have 0 points for winning the round."); return; }
+    if (!allScoresValid) {
+        let errorMessage = "Please correct the following score entries:\n";
+        playersWithErrors.forEach(err => {
+            errorMessage += `\n- ${err.name}: ${err.issue}.`;
+        });
+        errorMessage += `\n\nScores must be numbers. Minimum score is 2 (unless 0 for the round winner). Maximum score is ${currentGame.fullCountScore}.`;
+        alert(errorMessage);
+        
+        if (playersWithErrors.length > 0) {
+           const firstPlayerNameWithError = playersWithErrors[0].name;
+           const firstPlayerWithError = currentGame.players.find(p => p.name === firstPlayerNameWithError);
+           if (firstPlayerWithError) {
+               const M_inputElement = document.getElementById(`score-input-${firstPlayerWithError.id}`);
+                if(M_inputElement) M_inputElement.focus();
+           }
+        }
+        return; 
+    }
+
+    if (zeroScoreCount !== 1) { 
+        alert("Exactly one player must have 0 points for winning the round."); 
+        return; 
+    }
 
     // Apply scores (new or edited)
     if (isEditingLastRoundGlobal) {
         roundScoresData.forEach(rs => {
             const player = currentGame.players.find(p => p.id === rs.playerId);
-            // Ensure player and scores array are valid, and roundIndex is within bounds
             if (player && player.scores && player.scores[roundIndexBeingProcessed] !== undefined) {
                 player.scores[roundIndexBeingProcessed] = { points: rs.points, type: rs.type };
-            } else if (player && player.scores && roundIndexBeingProcessed === player.scores.length) {
-                // This case should ideally not happen if inputs are correctly managed for edits
-                // but as a fallback, if editing a score for a player who had no score (e.g. joined late in an older model)
-                // This part is less likely with current logic but defensive.
-                // For safety, ensure score inputs are always available for all players present in the round being edited.
-                // The current openScoreModal only shows inputs for non-eliminated players (if not editing)
-                // or all players if editing. So this branch might be less relevant.
-                // The primary path is updating existing player.scores[roundIndexBeingProcessed].
-            }
+            } 
+            // Not handling case where player has no score for roundIndexBeingProcessed during edit,
+            // as openScoreModal should provide inputs for all players involved in an edited round.
         });
     } else { // New round
         if (!currentGame.roundDealerHistory) currentGame.roundDealerHistory = [];
@@ -851,11 +1276,10 @@ function handleSubmitScores() {
         });
     }
     
-    // Recalculate totals and statuses
+    // Recalculate totals and statuses (Copied from a previously verified version)
     const provisionalPlayerStates = currentGame.players.map(p => {
         const playerOriginalState = playerStatesBeforeThisRound.find(ps => ps.id === p.id);
         let provisionalTotalScore;
-        
         let baseScore = 0;
         let sumFromRoundIndex = 0;
         if (p.reEntryEvents && p.reEntryEvents.length > 0) {
@@ -863,79 +1287,60 @@ function handleSubmitScores() {
             baseScore = lastReEntry.newBaselineScore;
             sumFromRoundIndex = lastReEntry.roundIndex;
         }
-
         let sumOfScoresAfterLastReEntry = 0;
         for (let i = sumFromRoundIndex; i < p.scores.length; i++) { 
-            if (p.scores[i] && typeof p.scores[i].points === 'number') { // Ensure score item and points are valid
+            if (p.scores[i] && typeof p.scores[i].points === 'number') {
                  sumOfScoresAfterLastReEntry += p.scores[i].points; 
             }
         }
         provisionalTotalScore = baseScore + sumOfScoresAfterLastReEntry;
-
         let provisionalEliminated = provisionalTotalScore >= currentGame.gameTargetScore;
-        if(provisionalEliminated) provisionalTotalScore = currentGame.gameTargetScore; // Cap score
-
+        if(provisionalEliminated) provisionalTotalScore = currentGame.gameTargetScore; 
         return {
-            id: p.id, 
-            name: p.name, 
-            provisionalTotalScore,
-            provisionalEliminated,
-            // wasPreviouslyEliminated refers to their state *before this specific round's scores/edits* are factored in.
+            id: p.id, name: p.name, provisionalTotalScore, provisionalEliminated,
             wasPreviouslyEliminated: playerOriginalState ? playerOriginalState.wasEliminated : false 
         };
     });
 
-    // After provisionalPlayerStates is fully calculated:
-    const activeProvisionalPlayers = provisionalPlayerStates.filter(p => !p.provisionalEliminated);
-    
     let preventReEntryDueToGameEnd = false;
+    const activeProvisionalPlayers = provisionalPlayerStates.filter(p => !p.provisionalEliminated);
     if (currentGame.players.length >= 2 && activeProvisionalPlayers.length === 1) {
-        // If only one player remains active provisionally, the game would end.
-        // This check is simplified from checkGameEnd; it assumes any situation reducing to 1 active player means game over for re-entry purposes.
         preventReEntryDueToGameEnd = true;
     }
 
-    // Final update of player states and re-entry eligibility
     currentGame.players.forEach(player => {
         const provisionalState = provisionalPlayerStates.find(p => p.id === player.id);
-        if (!provisionalState) return; // Should not happen
-
+        if (!provisionalState) return; 
         player.totalScore = provisionalState.provisionalTotalScore;
         player.eliminated = provisionalState.provisionalEliminated;
-        
-        player.canReEnterCurrentRound = false; // Reset eligibility 
-
+        player.justEliminated = false; 
+        if (player.eliminated && provisionalState && !provisionalState.wasPreviouslyEliminated) {
+            player.justEliminated = true;
+        }
+        player.canReEnterCurrentRound = false; 
         if (preventReEntryDueToGameEnd) {
-            // Game is provisionally over with a single winner, NO re-entries allowed for anyone.
-            // player.canReEnterCurrentRound remains false.
+            // No re-entry if game provisionally ends
         } else {
-            // Game is not provisionally over with a single winner, proceed with normal re-entry eligibility checks
             let conditionForReEntryCheck = false;
             if (isEditingLastRoundGlobal) {
-                conditionForReEntryCheck = player.eliminated; // If editing, check any player who is now eliminated
+                conditionForReEntryCheck = player.eliminated; 
             } else {
-                // For a new round, only check if player is *newly* eliminated in this round
                 conditionForReEntryCheck = player.eliminated && !provisionalState.wasPreviouslyEliminated;
             }
-
             if (conditionForReEntryCheck) {
                 if (currentGame.players.length > 2) { 
                     const scoresOfEligibleOthersForReEntry = provisionalPlayerStates
                         .filter(p_check => p_check.id !== player.id && p_check.provisionalTotalScore < currentGame.gameTargetScore)
                         .map(p_check => p_check.provisionalTotalScore);
-                    
                     let highestScoreOfEligibleOthers = 0;
                     if (scoresOfEligibleOthersForReEntry.length > 0) {
                         highestScoreOfEligibleOthers = Math.max(0, ...scoresOfEligibleOthersForReEntry);
                     }
                     const potentialReEntryScore = highestScoreOfEligibleOthers + 1;
-
                     if (potentialReEntryScore < currentGame.gameTargetScore) {
-                        const otherProvisionallyActivePlayers = provisionalPlayerStates.filter(p_check =>
-                            p_check.id !== player.id && 
-                            !p_check.provisionalEliminated
-                        );
-                        if (otherProvisionallyActivePlayers.length >= 1) {
+                        const otherActiveProvPlayers = provisionalPlayerStates.filter(p_check =>
+                            p_check.id !== player.id && !p_check.provisionalEliminated);
+                        if (otherActiveProvPlayers.length >= 1) {
                             player.canReEnterCurrentRound = true;
                         }
                     }
@@ -947,6 +1352,7 @@ function handleSubmitScores() {
     if (!isEditingLastRoundGlobal) {
         currentGame.currentRound++;
         advanceDealer();
+        currentGame.justSubmittedNewRound = true; 
     }
     
     currentRoundDisplay.textContent = currentGame.currentRound;
@@ -997,13 +1403,39 @@ function handleSubmitScores() {
             let gameHasEnded = false;
             currentGame.isComplete = false; 
 
+            // At the beginning of checkGameEnd, or after currentGame.isComplete is reset
+            if (currentGame && currentGame.players) { // Ensure currentGame and players exist
+                currentGame.players.forEach(player => {
+                    player.isWinner = false; // Reset for all players
+                });
+            }
+
             const anyPlayerCanReEnter = currentGame.players.some(p => p.eliminated && p.canReEnterCurrentRound);
 
             if (currentGame.players.length > 0 && activePlayers.length === 0 && !anyPlayerCanReEnter) {
                 gameStatusMessage.textContent = "All players eliminated! Game Over."; gameHasEnded = true;
                 currentGame.isComplete = true;
             } else if (currentGame.players.length >= 2 && activePlayers.length === 1 && currentGame.currentRound > 0 && !anyPlayerCanReEnter) { 
-                gameStatusMessage.textContent = `${activePlayers[0].name} is the winner!`; gameHasEnded = true;
+                gameStatusMessage.textContent = `${activePlayers[0].name} is the winner!`;
+
+                // Set isWinner flag on the winning player object
+                if (activePlayers[0]) { // Ensure winner exists
+                    const winningPlayerId = activePlayers[0].id;
+                    const actualWinningPlayer = currentGame.players.find(p => p.id === winningPlayerId);
+                    if (actualWinningPlayer) {
+                        actualWinningPlayer.isWinner = true;
+                    }
+                }
+
+                // Apply animation to gameStatusMessage
+                if (gameStatusMessage) {
+                    gameStatusMessage.classList.remove('winner-message-animate'); // Remove if already there, to allow re-animation
+                    // Force reflow to restart animation if class is re-added
+                    void gameStatusMessage.offsetWidth; 
+                    gameStatusMessage.classList.add('winner-message-animate');
+                }
+                showWinnerCelebrationOverlay();
+                gameHasEnded = true;
                 currentGame.isComplete = true;
             }
             
